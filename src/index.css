@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+/* Enable daisyUI and whitelist the two custom themes */
+@plugin "daisyui" {
+  themes: light-glass --default, dark-glass;
+  root: ":root";
+}
+
+/* DARK GLASS THEME */
+@plugin "daisyui/theme" {
+  name: "dark-glass";
+  default: true;
+  color-scheme: dark;
+  --color-base-100: #e0e0e0;
+  --color-base-200: #bebebe;
+  --color-base-300: #ffffff;
+  --color-base-content: #333333;
+  --color-primary: #ff4c60;
+  --color-primary-content: #ffffff;
+  --color-secondary: #4facfe;
+  --color-secondary-content: #ffffff;
+  --color-accent: #ff4c60;
+  --color-accent-content: #ffffff;
+  --color-neutral: #333333;
+  --color-neutral-content: #ffffff;
+  --color-info: #4facfe;
+  --color-info-content: #ffffff;
+  --color-success: #34d399;
+  --color-success-content: #ffffff;
+  --color-warning: #fbbf24;
+  --color-warning-content: #ffffff;
+  --color-error: #f87171;
+  --color-error-content: #ffffff;
+  --radius-box: 1rem;
+  --radius-field: 0.25rem;
+  --radius-selector: 0.125rem;
+  --size-box: 1rem;
+  --size-field: 0.25rem;
+  --size-selector: 0.125rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+/* LIGHT GLASS THEME */
+@plugin "daisyui/theme" {
+  name: "light-glass";
+  color-scheme: light;
+  --color-base-100: #f8faff;
+  --color-base-200: rgba(255, 255, 255, 0.6);
+  --color-base-300: #eff6ff;
+  --color-base-content: #0f1724;
+  --color-primary: #5a67ff;
+  --color-primary-content: #ffffff;
+  --color-secondary: #ff96c8;
+  --color-secondary-content: #ffffff;
+  --color-accent: #7dd3fc;
+  --color-accent-content: #ffffff;
+  --color-neutral: #f3f4f6;
+  --color-neutral-content: #0f1724;
+  --color-info: #60a5fa;
+  --color-info-content: #ffffff;
+  --color-success: #34d399;
+  --color-success-content: #ffffff;
+  --color-warning: #f59e0b;
+  --color-warning-content: #ffffff;
+  --color-error: #f87171;
+  --color-error-content: #ffffff;
+  --radius-box: 1rem;
+  --radius-field: 0.25rem;
+  --radius-selector: 0.125rem;
+  --size-box: 1rem;
+  --size-field: 0.25rem;
+  --size-selector: 0.125rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+/* Small glass utility and soft shadows */
+@layer utilities {
+  .glass-card {
+    @apply rounded-2xl border backdrop-blur-md p-6;
+    border-color: rgba(255, 255, 255, 0.06);
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.03),
+      rgba(255, 255, 255, 0.012)
+    );
+  }
+  .shadow-glass-soft {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  }
+  .inset-soft {
+    box-shadow: inset 4px 4px 12px rgba(0, 0, 0, 0.35),
+      inset -3px -3px 8px rgba(255, 255, 255, 0.02);
+  }
+}
