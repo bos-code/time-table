@@ -3,6 +3,7 @@ import TeacherInput from "./TeachersInput";
 import SubjectClassInput from "./subjec";
 import Summary from "./summery";
 import ProgressTracker from "./progress";
+import Navbar from "./themeSwitch";
 
 const initialState = {
   screen: "teacher-input",
@@ -100,29 +101,32 @@ export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { screen, teachers, currentTeacherIndex } = state;
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#e0e0e0] p-6">
-      {screen !== "summary" && (
-        <ProgressTracker
-          totalTeachers={teachers.length}
-          currentIndex={currentTeacherIndex}
-          screen={screen}
-        />
-      )}
+    <div className="min-h-screen bg-base-200/50 backdrop-blur-lg">
+      <Navbar />
+      <div className="min-h-screen flex flex-col gap-10 items-center justify-start pt-20 bg-base-200 p-6">
+        {screen !== "summary" && (
+          <ProgressTracker
+            totalTeachers={teachers.length}
+            currentIndex={currentTeacherIndex}
+            screen={screen}
+          />
+        )}
 
-      {screen === "teacher-input" && (
-        <TeacherInput dispatch={dispatch} teachers={teachers} />
-      )}
+        {screen === "teacher-input" && (
+          <TeacherInput dispatch={dispatch} teachers={teachers} />
+        )}
 
-      {screen === "subject-class-input" && (
-        <SubjectClassInput
-          dispatch={dispatch}
-          teacher={teachers[currentTeacherIndex]}
-        />
-      )}
+        {screen === "subject-class-input" && (
+          <SubjectClassInput
+            dispatch={dispatch}
+            teacher={teachers[currentTeacherIndex]}
+          />
+        )}
 
-      {screen === "summary" && (
-        <Summary dispatch={dispatch} teachers={teachers} />
-      )}
+        {screen === "summary" && (
+          <Summary dispatch={dispatch} teachers={teachers} />
+        )}
+      </div>
     </div>
   );
 }

@@ -15,8 +15,8 @@ export default function Navbar() {
   // Shadow styles for neumorphic effect
   const shadow =
     theme === "dark-glass"
-      ? "shadow-[8px_8px_15px_rgba(0,0,0,0.4),-8px_-8px_15px_rgba(255,255,255,0.05)]"
-      : "shadow-[8px_8px_15px_rgba(0,0,0,0.1),-8px_-8px_15px_rgba(255,255,255,0.7)]";
+      ? "shadow-[8px_5px_10px_rgba(0,0,0,0.2),-8px_-5px_10px_rgba(255,255,255,0.05)]"
+      : "shadow-[8px_5px_10px_rgba(0,0,0,0.1),-8px_-5px_10px_rgba(255,255,255,0.7)]";
 
   return (
     <div

@@ -106,8 +106,8 @@ export default function ProgressTracker({
       className="w-full max-w-3xl"
     >
       <div
-        style={{ boxShadow: cardShadow, background: "#e0e0e0" }}
-        className="rounded-2xl px-6 py-5"
+        style={{ boxShadow: cardShadow, }}
+        className="rounded-2xl px-6 py-5 bg-base-200"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
