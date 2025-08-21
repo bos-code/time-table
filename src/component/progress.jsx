@@ -73,7 +73,7 @@ export default function ProgressTracker({
               cx="5"
               cy="5"
               r={i === currentIndex ? 4.5 : 3.2}
-              fill={i === currentIndex ? "#ff4c60" : "#bdbdbd"}
+              fill={i === currentIndex ? "#ff4c60" : "#ff4c6040"}
             />
           </svg>
         ))}

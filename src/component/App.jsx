@@ -1,9 +1,10 @@
 import React, { useReducer } from "react";
 import TeacherInput from "./TeachersInput";
 import SubjectClassInput from "./subjec";
-import Summary from "./summery";
 import ProgressTracker from "./progress";
 import Navbar from "./themeSwitch";
+import AppTest from "./AppTest";
+import Summary from "./summery";
 
 const initialState = {
   screen: "teacher-input",
@@ -50,7 +51,7 @@ function reducer(state, action) {
     case "REMOVE_TEACHER": {
       const { index } = action.payload;
       const updated = state.teachers.filter((_, i) => i !== index);
-      // if currentTeacherIndex exists, clamp it
+ 
       const clampedIndex = Math.max(
         0,
         Math.min(
@@ -58,6 +59,7 @@ function reducer(state, action) {
           Math.max(0, updated.length - 1)
         )
       );
+      console.log('nn')
       return { ...state, teachers: updated, currentTeacherIndex: clampedIndex };
     }
 
