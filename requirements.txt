@@ -2,11 +2,6 @@ fastapi
 uvicorn
 python-multipart
 pydantic
-pandas
-numpy
-aiofiles
-jinja2
-python-dotenv
 psycopg2-binary
 sqlalchemy
-python-cors
+
