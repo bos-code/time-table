@@ -1,7 +1,31 @@
+# Core
 fastapi
 uvicorn
-python-multipart
-pydantic
-psycopg2-binary
-sqlalchemy
 
+# Data validation
+pydantic
+
+# Env variables
+python-dotenv
+
+# File uploads
+python-multipart
+aiofiles
+
+# Security
+bcrypt
+passlib[bcrypt]
+PyJWT
+python-jose
+email-validator
+
+# Database (optional if you plan to use Postgres or SQLite)
+SQLAlchemy
+psycopg2-binary
+alembic
+
+# OR-Tools for timetable generation
+ortools
+
+# HTTP requests
+requests
