@@ -8,7 +8,7 @@ import {
   handleRemoveSubject,
 } from "../utils/useSwal"; 
 import TeacherCard from "./TeacherCard"; 
-import SubjectRow from "./SubjectRow";
+import SubjectRow from "./subjectRow";
 import ActionButtons from "../features/tableAction";
 import { downloadJSON, exportCSV, printMovementBook } from "../utils/SummeryUtils";
 import { sendTestJson } from "./api"; 
