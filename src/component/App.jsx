@@ -1,51 +1,55 @@
+// App.jsx (relevant part)
 import React, { useReducer } from "react";
+import { initialState, reducer } from "./tableReducer";
 import TeacherInput from "./TeachersInput";
-import SubjectClassInput from "./subjec";
+import ValidationDashboard from "./ValidationDashboard";
+import Summary from "./summery";
 import ProgressTracker from "./progress";
 import Navbar from "./themeSwitch";
-import Summary from "./summery";
-import TimetableView from "./TableView";
-
-import { reducer, initialState } from "./tableReducer";
+import SubjectClassInput from "./TeachersAssignments";
+import TimetableFetcher from "./Timetable";
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const { screen, teachers, currentTeacherIndex } = state;
+  const { screen } = state;
+  console.log(state.teachers)
 
   return (
     <div className="min-h-screen bg-base-200/50 backdrop-blur-lg">
       <Navbar />
       <div className="min-h-screen flex flex-col gap-10 items-center justify-start pt-20 bg-base-200 p-6">
-        {/* Progress Tracker (only show before summary/timetable) */}
-        {screen !== "summary" && screen !== "timetable-generated" && (
-          <ProgressTracker
-            totalTeachers={teachers.length}
-            currentIndex={currentTeacherIndex}
-            screen={screen}
-          />
-        )}
-
-        {/* Teacher Input Screen */}
+        <ProgressTracker
+          totalTeachers={state.teachers.length}
+          currentIndex={state.currentTeacherIndex}
+          screen={screen}
+        />
         {screen === "teacher-input" && (
-          <TeacherInput dispatch={dispatch} teachers={teachers} />
+          <TeacherInput dispatch={dispatch} teachers={state.teachers} />
         )}
-
-        {/* Subject/Class Input Screen */}
+        {screen === "validation" && (
+          <ValidationDashboard state={state} dispatch={dispatch} />
+        )}
         {screen === "subject-class-input" && (
           <SubjectClassInput
             dispatch={dispatch}
-            teacher={teachers[currentTeacherIndex]}
+            teacher={state.teachers[state.currentTeacherIndex]}
+            currentIndex={state.currentTeacherIndex}
+            totalTeachers={state.teachers.length}
+            minYear={state.validation.classRange.from}
+            maxYear={state.validation.classRange.to}
+            teachers={state.teachers}
+            allowedSubjects={state.validation.subjectsSelected}
           />
         )}
-
-        {/* Summary Screen */}
         {screen === "summary" && (
-          <Summary dispatch={dispatch} teachers={teachers} />
+          <Summary
+            state={state}
+            dispatch={dispatch}
+            teachers={state.teachers}
+          />
         )}
-
-        {/* Generated Timetable Screen */}
-        {screen === "timetable-generated" && (
-          <TimetableView teachers={teachers} />
+        {screen === "CONFIRM_AND_GENERATE" && (
+          <TimetableFetcher />
         )}
       </div>
     </div>
