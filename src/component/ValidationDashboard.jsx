@@ -1,113 +1,140 @@
-// ValidationDashboard.jsx
 import React, { useMemo, useState } from "react";
-import { FaCheck, FaPlus, FaExclamationTriangle } from "react-icons/fa";
+import { FaCheck, FaExclamationTriangle, FaPlus } from "react-icons/fa";
 import NeumorphicCard from "./neuCard";
 
 export default function ValidationDashboard({ state, dispatch }) {
-  const [banner, setBanner] = useState(null); // {type:'error'|'success'|'info', msg:string}
-  const v = state.validation;
+  const [banner, setBanner] = useState(null);
+  const [newSubject, setNewSubject] = useState("");
+  const validation = state.validation;
+
   const catalogs = useMemo(() => {
     const {
       primary = [],
       jss = [],
       sss = [],
       custom = [],
-    } = v.subjectsCatalog || {};
+    } = validation.subjectsCatalog || {};
+
     return { primary, jss, sss, custom };
-  }, [v.subjectsCatalog]);
+  }, [validation.subjectsCatalog]);
+
+  const allSubjects = useMemo(() => {
+    const pool = [];
+    if (validation.levels.primary) {
+      pool.push(...catalogs.primary);
+    }
+    if (validation.levels.jss) {
+      pool.push(...catalogs.jss);
+    }
+    if (validation.levels.sss) {
+      pool.push(...catalogs.sss);
+    }
+    pool.push(...catalogs.custom);
+
+    return Array.from(new Set(pool)).sort((left, right) => left.localeCompare(right));
+  }, [catalogs, validation.levels]);
+
+  const activeDays = useMemo(
+    () => validation.days.filter((day) => day.enabled),
+    [validation.days]
+  );
+  const teachingPeriods = useMemo(
+    () => validation.periods.filter((period) => period.type === "teaching"),
+    [validation.periods]
+  );
+  const perClassCapacity = activeDays.length * teachingPeriods.length;
 
   function tryOrBanner(fn, onSuccess) {
     setBanner(null);
     try {
       const result = fn();
-      if (onSuccess) onSuccess(result);
-    } catch (err) {
-      setBanner({ type: "error", msg: err?.message || "An error occurred." });
+      if (onSuccess) {
+        onSuccess(result);
+      }
+    } catch (error) {
+      setBanner({ type: "error", msg: error?.message || "Something went wrong." });
     }
   }
 
   function handleConfirm() {
-    tryOrBanner(() => {
-      dispatch({ type: "VALIDATION_CONFIRM" });
-      setBanner({
-        type: "success",
-        msg: "Validated. Proceed to assign subjects to teachers.",
-      });
-    });
-  }
-
-  // --- SUBJECTS
-  const allSubjects = useMemo(() => {
-  const pool = [];
-    if (v.levels.primary) pool.push(...catalogs.primary);
-    if (v.levels.jss) pool.push(...catalogs.jss);
-    if (v.levels.sss) pool.push(...catalogs.sss);
-    pool.push(...(catalogs.custom || []));
-    return Array.from(new Set(pool)).sort((a, b) => a.localeCompare(b));
-  }, [v.levels, catalogs]);
-
-  const isChecked = (s) => v.subjectsSelected.includes(s);
-
-  // --- PERIODS edit helpers
-  function updatePeriod(idx, patch) {
-    const next = v.periods.map((p, i) => (i === idx ? { ...p, ...patch } : p));
-    tryOrBanner(() =>
-      dispatch({ type: "VALIDATION_SET_PERIODS", payload: next })
+    tryOrBanner(
+      () => dispatch({ type: "VALIDATION_CONFIRM" }),
+      () =>
+        setBanner({
+          type: "success",
+          msg: "Validation passed. You can now assign teacher workloads.",
+        })
     );
   }
+
+  function updatePeriod(index, patch) {
+    const nextPeriods = validation.periods.map((period, currentIndex) =>
+      currentIndex === index ? { ...period, ...patch } : period
+    );
+    tryOrBanner(() =>
+      dispatch({ type: "VALIDATION_SET_PERIODS", payload: nextPeriods })
+    );
+  }
+
   function addPeriod() {
-    const last = v.periods[v.periods.length - 1];
-    const newP = {
+    const lastPeriod = validation.periods[validation.periods.length - 1];
+    const newPeriod = {
       id: `p${Math.random().toString(36).slice(2, 7)}`,
       label: "New Period",
-      start: last?.end || "15:00",
+      start: lastPeriod?.end || "15:00",
       end: "15:40",
       type: "teaching",
     };
+
     tryOrBanner(() =>
       dispatch({
         type: "VALIDATION_SET_PERIODS",
-        payload: [...v.periods, newP],
+        payload: [...validation.periods, newPeriod],
       })
     );
   }
-  function removePeriod(idx) {
-    const next = v.periods.filter((_, i) => i !== idx);
+
+  function removePeriod(index) {
+    const nextPeriods = validation.periods.filter((_, currentIndex) => currentIndex !== index);
     tryOrBanner(() =>
-      dispatch({ type: "VALIDATION_SET_PERIODS", payload: next })
+      dispatch({ type: "VALIDATION_SET_PERIODS", payload: nextPeriods })
     );
   }
 
-  // --- CLASS RANGE
   function setRange(patch) {
     tryOrBanner(() =>
       dispatch({ type: "VALIDATION_SET_CLASS_RANGE", payload: patch })
     );
   }
 
-  // --- ADD CUSTOM SUBJECT
-  const [newSubject, setNewSubject] = useState("");
   function addCustomSubject() {
-    const s = newSubject.trim();
-    if (!s) return;
+    const subject = newSubject.trim();
+    if (!subject) {
+      return;
+    }
+
     tryOrBanner(
-      () => dispatch({ type: "VALIDATION_ADD_SUBJECT", payload: s }),
+      () => dispatch({ type: "VALIDATION_ADD_SUBJECT", payload: subject }),
       () => setNewSubject("")
     );
   }
 
   return (
     <NeumorphicCard>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold">Validation</h2>
+      <div className="flex items-center justify-between mb-4 gap-4">
+        <div>
+          <h2 className="text-xl font-bold">Validation</h2>
+          <p className="text-sm text-gray-500">
+            Finalize the school week before assigning teacher lessons.
+          </p>
+        </div>
+
         {banner && (
           <div
             className={`px-3 py-2 rounded-lg border text-sm ${
               banner.type === "error"
                 ? "bg-red-50 border-red-200 text-red-700"
-                : banner.type === "success"
-                ? "bg-green-50 border-green-200 text-green-700"
-                : "bg-blue-50 border-blue-200 text-blue-700"
+                : "bg-green-50 border-green-200 text-green-700"
             }`}
           >
             {banner.type === "error" && (
@@ -118,105 +145,145 @@ export default function ValidationDashboard({ state, dispatch }) {
         )}
       </div>
 
-      {/* Levels */}
+      <section className="mb-6 grid gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border bg-base-100 px-4 py-3">
+          <div className="text-sm text-gray-500">Active days</div>
+          <div className="text-2xl font-semibold">{activeDays.length}</div>
+        </div>
+        <div className="rounded-2xl border bg-base-100 px-4 py-3">
+          <div className="text-sm text-gray-500">Teaching periods / day</div>
+          <div className="text-2xl font-semibold">{teachingPeriods.length}</div>
+        </div>
+        <div className="rounded-2xl border bg-base-100 px-4 py-3">
+          <div className="text-sm text-gray-500">Slots per class / week</div>
+          <div className="text-2xl font-semibold">{perClassCapacity}</div>
+        </div>
+      </section>
+
       <section className="mb-6">
         <h3 className="font-semibold mb-2">School Levels</h3>
         <div className="flex flex-wrap gap-3">
           {[
-            { key: "primary", label: "Primary (Year 1–6)" },
-            { key: "jss", label: "Junior Secondary (Year 7–9)" },
-            { key: "sss", label: "Senior Secondary (Year 10–12)" },
-          ].map((lvl) => (
+            { key: "primary", label: "Primary (Year 1-6)" },
+            { key: "jss", label: "Junior Secondary (Year 7-9)" },
+            { key: "sss", label: "Senior Secondary (Year 10-12)" },
+          ].map((level) => (
             <button
-              key={lvl.key}
+              key={level.key}
               onClick={() =>
                 dispatch({
                   type: "VALIDATION_TOGGLE_LEVEL",
-                  payload: { level: lvl.key, value: !v.levels[lvl.key] },
+                  payload: {
+                    level: level.key,
+                    value: !validation.levels[level.key],
+                  },
                 })
               }
               className={`px-3 py-2 rounded-xl border hover:shadow ${
-                v.levels[lvl.key] ? "bg-base-100" : "bg-base-200"
+                validation.levels[level.key] ? "bg-base-100" : "bg-base-200"
               }`}
             >
               <span className="inline-flex items-center gap-2">
-                {v.levels[lvl.key] && <FaCheck />}
-                {lvl.label}
+                {validation.levels[level.key] && <FaCheck />}
+                {level.label}
               </span>
             </button>
           ))}
         </div>
       </section>
 
-      {/* Class Range */}
       <section className="mb-6">
-        <h3 className="font-semibold mb-2">Class Range (default Year 7–12)</h3>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <label className="text-sm">From</label>
+        <h3 className="font-semibold mb-2">School Days</h3>
+        <div className="flex flex-wrap gap-3">
+          {validation.days.map((day) => (
+            <button
+              key={day.id}
+              onClick={() =>
+                dispatch({ type: "VALIDATION_TOGGLE_DAY", payload: day.id })
+              }
+              className={`px-3 py-2 rounded-xl border hover:shadow ${
+                day.enabled ? "bg-base-100" : "bg-base-200 text-gray-400"
+              }`}
+            >
+              <span className="inline-flex items-center gap-2">
+                {day.enabled && <FaCheck />}
+                {day.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="mb-6">
+        <h3 className="font-semibold mb-2">Class Range</h3>
+        <div className="grid gap-3 md:grid-cols-3">
+          <label className="flex flex-col gap-2 text-sm">
+            <span>From</span>
             <input
               type="number"
               min={1}
-              value={v.classRange.from}
-              onChange={(e) =>
-                setRange({ from: parseInt(e.target.value || "0", 10) })
+              value={validation.classRange.from}
+              onChange={(event) =>
+                setRange({ from: parseInt(event.target.value || "0", 10) })
               }
-              className="px-2 py-1 rounded-md border"
+              className="px-2 py-2 rounded-md border"
             />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm">To</label>
+          </label>
+          <label className="flex flex-col gap-2 text-sm">
+            <span>To</span>
             <input
               type="number"
-              min={v.classRange.from}
-              value={v.classRange.to}
-              onChange={(e) =>
-                setRange({ to: parseInt(e.target.value || "0", 10) })
+              min={validation.classRange.from}
+              value={validation.classRange.to}
+              onChange={(event) =>
+                setRange({ to: parseInt(event.target.value || "0", 10) })
               }
-              className="px-2 py-1 rounded-md border"
+              className="px-2 py-2 rounded-md border"
             />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm">Prefix</label>
+          </label>
+          <label className="flex flex-col gap-2 text-sm">
+            <span>Prefix</span>
             <input
-              value={v.classRange.prefix}
-              onChange={(e) => setRange({ prefix: e.target.value })}
-              className="px-2 py-1 rounded-md border"
+              value={validation.classRange.prefix}
+              onChange={(event) => setRange({ prefix: event.target.value })}
+              className="px-2 py-2 rounded-md border"
             />
-          </div>
+          </label>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
-          {v.classes.map((c) => (
+          {validation.classes.map((className) => (
             <span
-              key={c}
+              key={className}
               className="px-2 py-1 text-xs rounded-md border bg-base-100"
             >
-              {c}
+              {className}
             </span>
           ))}
         </div>
       </section>
 
-      {/* Subjects checklist */}
       <section className="mb-6">
         <h3 className="font-semibold mb-3">
-          Subjects (Lagos + Your Defaults; uncheck to exclude)
+          Subjects (checked subjects become available for teacher assignments)
         </h3>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          {allSubjects.map((s) => (
+          {allSubjects.map((subject) => (
             <label
-              key={s}
+              key={subject}
               className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-base-100"
             >
               <input
                 type="checkbox"
-                checked={isChecked(s)}
+                checked={validation.subjectsSelected.includes(subject)}
                 onChange={() =>
-                  dispatch({ type: "VALIDATION_TOGGLE_SUBJECT", payload: s })
+                  dispatch({
+                    type: "VALIDATION_TOGGLE_SUBJECT",
+                    payload: subject,
+                  })
                 }
               />
-              <span className="text-sm">{s}</span>
+              <span className="text-sm">{subject}</span>
             </label>
           ))}
         </div>
@@ -225,7 +292,7 @@ export default function ValidationDashboard({ state, dispatch }) {
           <input
             placeholder="Add custom subject"
             value={newSubject}
-            onChange={(e) => setNewSubject(e.target.value)}
+            onChange={(event) => setNewSubject(event.target.value)}
             className="px-3 py-2 rounded-lg border flex-1"
           />
           <button
@@ -238,43 +305,50 @@ export default function ValidationDashboard({ state, dispatch }) {
         </div>
       </section>
 
-      {/* Periods */}
       <section className="mb-6">
-        <h3 className="font-semibold mb-3">Periods (editable)</h3>
+        <h3 className="font-semibold mb-3">Daily Periods</h3>
         <div className="space-y-2">
-          {v.periods.map((p, idx) => (
+          {validation.periods.map((period, index) => (
             <div
-              key={p.id || idx}
+              key={period.id || index}
               className="grid grid-cols-1 sm:grid-cols-5 gap-3 items-center px-3 py-2 rounded-xl border bg-base-100"
             >
               <input
-                value={p.label}
-                onChange={(e) => updatePeriod(idx, { label: e.target.value })}
+                value={period.label}
+                onChange={(event) =>
+                  updatePeriod(index, { label: event.target.value })
+                }
                 className="px-2 py-1 rounded-md border"
                 placeholder="Label"
               />
               <input
-                value={p.start}
-                onChange={(e) => updatePeriod(idx, { start: e.target.value })}
+                value={period.start}
+                onChange={(event) =>
+                  updatePeriod(index, { start: event.target.value })
+                }
                 className="px-2 py-1 rounded-md border"
                 placeholder="HH:MM"
               />
               <input
-                value={p.end}
-                onChange={(e) => updatePeriod(idx, { end: e.target.value })}
+                value={period.end}
+                onChange={(event) =>
+                  updatePeriod(index, { end: event.target.value })
+                }
                 className="px-2 py-1 rounded-md border"
                 placeholder="HH:MM"
               />
               <select
-                value={p.type}
-                onChange={(e) => updatePeriod(idx, { type: e.target.value })}
+                value={period.type}
+                onChange={(event) =>
+                  updatePeriod(index, { type: event.target.value })
+                }
                 className="px-2 py-1 rounded-md border"
               >
                 <option value="teaching">Teaching</option>
                 <option value="non-teaching">Non-Teaching</option>
               </select>
               <button
-                onClick={() => removePeriod(idx)}
+                onClick={() => removePeriod(index)}
                 className="px-2 py-1 rounded-md border hover:shadow"
               >
                 Remove
@@ -287,18 +361,18 @@ export default function ValidationDashboard({ state, dispatch }) {
             onClick={addPeriod}
             className="px-3 py-2 rounded-lg border bg-base-100"
           >
-            <FaPlus className="inline mr-2" /> Add Period
+            <FaPlus className="inline mr-2" />
+            Add Period
           </button>
         </div>
       </section>
 
-          <div className="flex justify-end">
-              
+      <div className="flex justify-end">
         <button
           onClick={handleConfirm}
           className="px-4 py-2 rounded-lg border bg-base-100 hover:shadow"
         >
-          Continue to Assignments
+          Continue to Teacher Workloads
         </button>
       </div>
     </NeumorphicCard>

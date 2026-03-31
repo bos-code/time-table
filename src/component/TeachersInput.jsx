@@ -3,12 +3,28 @@ import NeumorphicCard from "./neuCard";
 
 export default function TeacherInput({ dispatch, teachers }) {
   const [name, setName] = useState("");
+  const [error, setError] = useState("");
 
-  function handleSubmit(e) {
-    e.preventDefault();
-    if (!name.trim()) return;
-    dispatch({ type: "ADD_TEACHER", payload: name.trim() });
+  function handleSubmit(event) {
+    event.preventDefault();
+
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setError("Enter a teacher name first.");
+      return;
+    }
+
+    const hasDuplicate = teachers.some(
+      (teacher) => teacher.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+    if (hasDuplicate) {
+      setError("Teacher names need to be unique for the solver.");
+      return;
+    }
+
+    dispatch({ type: "ADD_TEACHER", payload: trimmedName });
     setName("");
+    setError("");
   }
 
   return (
@@ -17,7 +33,10 @@ export default function TeacherInput({ dispatch, teachers }) {
       <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
         <input
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(event) => {
+            setName(event.target.value);
+            setError("");
+          }}
           className="flex-1 px-3 py-2 rounded-lg border-none outline-none shadow-inner"
           placeholder="Teacher Name"
         />
@@ -26,14 +45,15 @@ export default function TeacherInput({ dispatch, teachers }) {
         </button>
       </form>
 
-      <ul className="mb-4">
-        {teachers.map((t, idx) => (
-          <li key={idx} className="mb-1">
-            • {t.name}
+      {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
+
+      <ul className="mb-4 space-y-1">
+        {teachers.map((teacher, index) => (
+          <li key={`${teacher.name}-${index}`} className="text-sm">
+            - {teacher.name}
           </li>
         ))}
       </ul>
-
 
       {teachers.length > 0 && (
         <button

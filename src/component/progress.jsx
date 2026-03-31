@@ -1,9 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
-/**
- * ProgressTracker — shadow guaranteed
- */
 export default function ProgressTracker({
   totalTeachers = 0,
   currentIndex = 0,
@@ -18,14 +15,22 @@ export default function ProgressTracker({
 
   useEffect(() => {
     let text = "";
-    if (screen === "teacher-input") text = "Step 1 — Add Teachers";
-    else if (screen === "subject-class-input")
-      text = `Teacher ${Math.min(
+    if (screen === "teacher-input") {
+      text = "Step 1 - Add Teachers";
+    } else if (screen === "validation") {
+      text = "Step 2 - Validate School Week";
+    } else if (screen === "subject-class-input") {
+      text = `Step 3 - Teacher ${Math.min(
         currentIndex + 1,
         totalTeachers
-      )} of ${totalTeachers}`;
-    else if (screen === "summary") text = "Review & Confirm";
-    else text = screen.replace(/-/g, " ");
+      )} of ${Math.max(totalTeachers, 1)}`;
+    } else if (screen === "summary") {
+      text = "Step 4 - Review and Generate";
+    } else if (screen === "timetable-generated") {
+      text = "Step 5 - Generated Timetable";
+    } else {
+      text = screen.replace(/-/g, " ");
+    }
 
     clearInterval(typingRef.current);
     clearTimeout(pauseRef.current);
@@ -33,22 +38,22 @@ export default function ProgressTracker({
     setFullText(text);
     setDisplayText("");
 
-    if (!text) return;
+    if (!text) {
+      return undefined;
+    }
 
     const chars = Array.from(text);
-    let i = 0;
-    const START_DELAY = Math.min(150, typingSpeed / 2);
+    let index = 0;
     const startTimeout = setTimeout(() => {
       typingRef.current = setInterval(() => {
-        const char = chars[i];
-        setDisplayText((prev) => prev + char);
-        i++;
-        if (i >= chars.length) {
+        setDisplayText((previous) => previous + chars[index]);
+        index += 1;
+        if (index >= chars.length) {
           clearInterval(typingRef.current);
           pauseRef.current = setTimeout(() => {}, 600);
         }
       }, typingSpeed);
-    }, START_DELAY);
+    }, Math.min(150, typingSpeed / 2));
 
     return () => {
       clearTimeout(startTimeout);
@@ -57,31 +62,6 @@ export default function ProgressTracker({
     };
   }, [screen, currentIndex, totalTeachers, typingSpeed]);
 
-  const renderDots = () => {
-    if (!totalTeachers || totalTeachers <= 1) return null;
-    return (
-      <div className="flex items-center mt-3">
-        {Array.from({ length: totalTeachers }, (_, i) => (
-          <svg
-            key={i}
-            width="10"
-            height="10"
-            className={i === currentIndex ? "opacity-100" : "opacity-40"}
-            style={{ marginRight: 6 }}
-          >
-            <circle
-              cx="5"
-              cy="5"
-              r={i === currentIndex ? 4.5 : 3.2}
-              fill={i === currentIndex ? "#ff4c60" : "#ff4c6040"}
-            />
-          </svg>
-        ))}
-      </div>
-    );
-  };
-
-  // Inline box-shadow (stronger visibility + inset)
   const cardShadow = `
     inset 6px 6px 14px rgba(0,0,0,0.16),
     inset -6px -6px 14px rgba(255,255,255,0.85),
@@ -89,13 +69,23 @@ export default function ProgressTracker({
     -8px -8px 24px rgba(255,255,255,0.7)
   `;
 
-  // Gradient style for clipped text (guaranteed)
   const gradientTextStyle = {
-    background: "linear-gradient(90deg,#ff4c60 0%, #ff8aa1 35%, #a18cd1 100%)",
+    background: "linear-gradient(90deg, #ff4c60 0%, #ff8aa1 35%, #a18cd1 100%)",
     WebkitBackgroundClip: "text",
     backgroundClip: "text",
     color: "transparent",
   };
+
+  const subtitle =
+    screen === "teacher-input"
+      ? "Enter teacher names, then confirm to configure the school week."
+      : screen === "validation"
+      ? "Choose the active school days, periods, classes, and subjects."
+      : screen === "subject-class-input"
+      ? "Add subject-class workloads for the current teacher."
+      : screen === "timetable-generated"
+      ? "Review the timetable produced by the OR-Tools solver."
+      : "Review the structure before generating the timetable.";
 
   return (
     <motion.div
@@ -105,10 +95,7 @@ export default function ProgressTracker({
       transition={{ duration: 0.28 }}
       className="w-full max-w-3xl"
     >
-      <div
-        style={{ boxShadow: cardShadow, }}
-        className="rounded-2xl px-6 py-5 bg-base-200"
-      >
+      <div style={{ boxShadow: cardShadow }} className="rounded-2xl px-6 py-5 bg-base-200">
         <div className="flex items-start justify-between gap-4">
           <div>
             <AnimatePresence mode="wait">
@@ -148,14 +135,8 @@ export default function ProgressTracker({
               animate={{ opacity: 1 }}
               transition={{ delay: 0.18 }}
             >
-              {screen === "teacher-input"
-                ? "Enter teacher names, then confirm to assign subjects."
-                : screen === "subject-class-input"
-                ? "Add subject-class pairs for the current teacher."
-                : "Review the structure before generating the timetable."}
+              {subtitle}
             </motion.p>
-
-            {renderDots()}
           </div>
 
           <motion.div
@@ -164,12 +145,7 @@ export default function ProgressTracker({
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.28 }}
           >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              className="opacity-90"
-            >
+            <svg width="20" height="20" viewBox="0 0 24 24" className="opacity-90">
               <path
                 d="M12 2a10 10 0 1 0 .001 20.001A10 10 0 0 0 12 2zm1 5h-2v6l5.2 3.2 1-1.6-4.2-2.6V7z"
                 fill="#4facfe"
@@ -177,7 +153,7 @@ export default function ProgressTracker({
             </svg>
             <div className="text-sm text-[#444]">
               <div className="font-semibold">
-                {Math.min(currentIndex + 1, totalTeachers)} /{" "}
+                {Math.min(currentIndex + 1, Math.max(totalTeachers, 1))} /{" "}
                 {Math.max(totalTeachers, 1)}
               </div>
               <div className="text-xs text-[#777]">Progress</div>

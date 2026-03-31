@@ -1,36 +1,17 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import NeumorphicCard from "./neuCard";
 
-/**
- * Strict, prop-driven Subject + Year entry with inline edit
- *
- * Props (all optional except dispatch):
- * - dispatch: function (required)  -> action types used: ADD_SUBJECT_CLASS, REMOVE_SUBJECT, EDIT_SUBJECT, PREV_TEACHER, NEXT_TEACHER
- * - teacher: { name, subjects: [{subject, class}] }
- * - currentIndex, totalTeachers
- * - minYear=1, maxYear=12
- *
- * - allowedSubjects?: string[]                 // canonical list to enforce (case-insensitive). If omitted, any subject allowed.
- * - allSubjects?: string[]                     // fallback list for Autocomplete suggestions if allowedSubjects not given.
- *
- * - validateSubjectYear?: (subject, year, ctx) => string|null
- *      // Optional hook for strict subject↔year validation. Return error string to block, or null to allow.
- *      // ctx = { teacher, currentIndex, allTeacherSubjects: teacher?.subjects ?? [] }
- *
- * - subjectYearMap?: Record<string, number[] | {min:number, max:number}>
- *      // Optional alternative to validateSubjectYear. If provided:
- *      //  - If value is array -> allowed years
- *      //  - If value is {min,max} -> allowed inclusive range
- *
- * - allowAcronymHeuristic?: boolean (default true)
- *      // If true, accepts tokens like "CCA", "SOS", "CRS", "BST" even if not in allowedSubjects.
- *
- * - normalizeSubject?: (text) => string
- *      // Optional: supply your own canonicalizer. Default preserves ALL-CAPS acronyms; otherwise Title-Case.
- */
+const MAX_LESSONS_PER_WEEK = 15;
+
+function formatClassName(prefix, year) {
+  const rawPrefix = String(prefix || "Year ");
+  const separator = /\s$|[-/]$/.test(rawPrefix) ? "" : " ";
+  return `${rawPrefix}${separator}${year}`.trim();
+}
+
 export default function SubjectClassInput({
   dispatch,
   teacher = { name: "Unknown", subjects: [] },
@@ -38,6 +19,7 @@ export default function SubjectClassInput({
   totalTeachers = 1,
   minYear = 1,
   maxYear = 12,
+  classPrefix = "Year ",
   allowedSubjects,
   allSubjects,
   validateSubjectYear,
@@ -45,166 +27,244 @@ export default function SubjectClassInput({
   allowAcronymHeuristic = true,
   normalizeSubject,
 }) {
-  // ---------- options (unique + trimmed) ----------
   const subjectOptions = useMemo(() => {
-    const src =
+    const source =
       Array.isArray(allowedSubjects) && allowedSubjects.length
         ? allowedSubjects
         : Array.isArray(allSubjects)
         ? allSubjects
         : [];
-    return Array.from(new Set(src.map((s) => (s || "").trim()).filter(Boolean)));
+
+    return Array.from(
+      new Set(source.map((value) => (value || "").trim()).filter(Boolean))
+    );
   }, [allowedSubjects, allSubjects]);
 
-  // ---------- helpers ----------
-  const isAcronym = (s) =>
-    !!s && /^[A-Z]{2,8}$/.test(s.trim()); // heuristic-only, no hardcoding
+  const isAcronym = (value) => !!value && /^[A-Z]{2,8}$/.test(value.trim());
 
-  const defaultNormalize = (s) => {
-    const t = (s || "").trim();
-    if (!t) return "";
-    if (isAcronym(t)) return t; // keep real acronyms (CCA, SOS, CRS, BST...)
-    // Title Case (simple)
-    return t
+  const defaultNormalize = (value) => {
+    const trimmed = (value || "").trim();
+    if (!trimmed) {
+      return "";
+    }
+    if (isAcronym(trimmed)) {
+      return trimmed;
+    }
+    return trimmed
       .toLowerCase()
       .split(/\s+/)
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
   };
+
   const norm = normalizeSubject || defaultNormalize;
 
-  const ciEq = (a, b) => (a || "").trim().toLowerCase() === (b || "").trim().toLowerCase();
+  const ciEq = (left, right) =>
+    (left || "").trim().toLowerCase() === (right || "").trim().toLowerCase();
 
-  const canonicalFromOptions = (text) => {
-    const t = (text || "").trim().toLowerCase();
-    const found = subjectOptions.find((o) => o.toLowerCase() === t);
-    return found || null;
+  const canonicalFromOptions = (value) => {
+    const trimmed = (value || "").trim().toLowerCase();
+    return subjectOptions.find((option) => option.toLowerCase() === trimmed) || null;
   };
 
-  const inAllowed = (text) => {
-    if (!Array.isArray(subjectOptions) || subjectOptions.length === 0) return true; // nothing to enforce
-    const hit = canonicalFromOptions(text);
-    if (hit) return true;
-    if (allowAcronymHeuristic && isAcronym(text)) return true; // allow real acronyms even if not in list
-    return false;
+  const inAllowed = (value) => {
+    if (!subjectOptions.length) {
+      return true;
+    }
+
+    if (canonicalFromOptions(value)) {
+      return true;
+    }
+
+    return allowAcronymHeuristic && isAcronym(value);
   };
 
-  const yearAllowedByMap = (subjectText, yr) => {
-    if (!subjectYearMap) return true;
-    const key = Object.keys(subjectYearMap).find((k) => ciEq(k, subjectText));
-    if (!key) return true; // subject not constrained
+  const yearAllowedByMap = (subjectText, yearValue) => {
+    if (!subjectYearMap) {
+      return true;
+    }
+
+    const key = Object.keys(subjectYearMap).find((entry) => ciEq(entry, subjectText));
+    if (!key) {
+      return true;
+    }
+
     const rule = subjectYearMap[key];
-    if (Array.isArray(rule)) return rule.includes(yr);
+    if (Array.isArray(rule)) {
+      return rule.includes(yearValue);
+    }
     if (rule && typeof rule === "object") {
       const { min, max } = rule;
-      if (typeof min === "number" && yr < min) return false;
-      if (typeof max === "number" && yr > max) return false;
+      if (typeof min === "number" && yearValue < min) {
+        return false;
+      }
+      if (typeof max === "number" && yearValue > max) {
+        return false;
+      }
     }
     return true;
   };
 
-  const subjectYearCustomCheck = (subjectText, yr) => {
-    if (typeof validateSubjectYear === "function") {
-      return validateSubjectYear(subjectText, yr, {
-        teacher,
-        currentIndex,
-        allTeacherSubjects: Array.isArray(teacher?.subjects) ? teacher.subjects : [],
-      });
+  const subjectYearCustomCheck = (subjectText, yearValue) => {
+    if (typeof validateSubjectYear !== "function") {
+      return null;
     }
-    return null;
+
+    return validateSubjectYear(subjectText, yearValue, {
+      teacher,
+      currentIndex,
+      allTeacherSubjects: Array.isArray(teacher?.subjects) ? teacher.subjects : [],
+    });
   };
 
-  // ---------- state ----------
   const [subject, setSubject] = useState("");
   const [year, setYear] = useState("");
+  const [lessonsPerWeek, setLessonsPerWeek] = useState("3");
   const [error, setError] = useState("");
   const subjectInputRef = useRef(null);
 
-  // Edit state
   const [editingIndex, setEditingIndex] = useState(-1);
   const [editSubject, setEditSubject] = useState("");
   const [editYear, setEditYear] = useState("");
+  const [editLessonsPerWeek, setEditLessonsPerWeek] = useState("3");
   const editRef = useRef(null);
 
   useEffect(() => {
     setTimeout(() => {
-      const el =
+      const input =
         subjectInputRef.current?.querySelector("input") || subjectInputRef.current;
-      el?.focus?.();
+      input?.focus?.();
     }, 40);
     setEditingIndex(-1);
   }, [teacher?.name, currentIndex]);
 
-  const clampYear = (val) => {
-    const n = Number(val);
-    if (val === "") return "";
-    if (Number.isNaN(n)) return "";
-    if (n < minYear) return String(minYear);
-    if (n > maxYear) return String(maxYear);
-    return String(Math.floor(n));
+  const clampYear = (value) => {
+    const parsed = Number(value);
+    if (value === "") {
+      return "";
+    }
+    if (Number.isNaN(parsed)) {
+      return "";
+    }
+    if (parsed < minYear) {
+      return String(minYear);
+    }
+    if (parsed > maxYear) {
+      return String(maxYear);
+    }
+    return String(Math.floor(parsed));
+  };
+
+  const clampLessons = (value) => {
+    const parsed = Number(value);
+    if (value === "") {
+      return "";
+    }
+    if (Number.isNaN(parsed)) {
+      return "";
+    }
+    if (parsed < 1) {
+      return "1";
+    }
+    if (parsed > MAX_LESSONS_PER_WEEK) {
+      return String(MAX_LESSONS_PER_WEEK);
+    }
+    return String(Math.floor(parsed));
   };
 
   const subjects = Array.isArray(teacher?.subjects) ? teacher.subjects : [];
 
-  // ---------- unified validation ----------
-  const validatePair = (rawSubject, rawYear, { editing = false, excludeIndex = -1 } = {}) => {
-    const trimmedSub = (rawSubject || "").trim();
-    const trimmedYr = (rawYear || "").trim();
+  const validatePair = (
+    rawSubject,
+    rawYear,
+    rawLessons,
+    { editing = false, excludeIndex = -1 } = {}
+  ) => {
+    const trimmedSubject = (rawSubject || "").trim();
+    const trimmedYear = (rawYear || "").trim();
+    const trimmedLessons = (rawLessons || "").trim();
 
-    if (!trimmedSub) return "Please enter a subject.";
-    if (!inAllowed(trimmedSub)) return `"${trimmedSub}" is not an allowed subject. Choose from the list.`;
+    if (!trimmedSubject) {
+      return "Please enter a subject.";
+    }
+    if (!inAllowed(trimmedSubject)) {
+      return `"${trimmedSubject}" is not in the allowed subject list.`;
+    }
 
-    if (!trimmedYr) return `Please enter a year (${minYear}-${maxYear}).`;
-    const num = Number(trimmedYr);
-    if (!Number.isInteger(num) || num < minYear || num > maxYear)
-      return `Year must be an integer between ${minYear} and ${maxYear}.`;
+    if (!trimmedYear) {
+      return `Please enter a class year between ${minYear} and ${maxYear}.`;
+    }
 
-    const displaySub = norm(trimmedSub);
+    const yearValue = Number(trimmedYear);
+    if (!Number.isInteger(yearValue) || yearValue < minYear || yearValue > maxYear) {
+      return `Year must be a whole number between ${minYear} and ${maxYear}.`;
+    }
 
-    // subject↔year map (if provided)
-    if (!yearAllowedByMap(displaySub, num))
-      return `“${displaySub}” is not offered for Year ${num}.`;
+    if (!trimmedLessons) {
+      return "Please enter lessons per week.";
+    }
 
-    // custom hook (if provided)
-    const customMsg = subjectYearCustomCheck(displaySub, num);
-    if (typeof customMsg === "string" && customMsg.trim()) return customMsg.trim();
+    const lessonsValue = Number(trimmedLessons);
+    if (
+      !Number.isInteger(lessonsValue) ||
+      lessonsValue < 1 ||
+      lessonsValue > MAX_LESSONS_PER_WEEK
+    ) {
+      return `Lessons per week must be between 1 and ${MAX_LESSONS_PER_WEEK}.`;
+    }
 
-    // duplicates (case-insensitive subject + exact year)
-    const dup = subjects.some((p, i) => {
-      if (editing && i === excludeIndex) return false;
-      const yr = parseInt(String(p.class || "").match(/\d+/)?.[0] || "", 10);
-      return ciEq(p.subject, displaySub) && yr === num;
+    const displaySubject = norm(trimmedSubject);
+    if (!yearAllowedByMap(displaySubject, yearValue)) {
+      return `${displaySubject} is not offered for that year.`;
+    }
+
+    const customMessage = subjectYearCustomCheck(displaySubject, yearValue);
+    if (typeof customMessage === "string" && customMessage.trim()) {
+      return customMessage.trim();
+    }
+
+    const className = formatClassName(classPrefix, yearValue);
+    const duplicate = subjects.some((entry, index) => {
+      if (editing && index === excludeIndex) {
+        return false;
+      }
+      return ciEq(entry.subject, displaySubject) && ciEq(entry.class, className);
     });
-    if (dup) return `Duplicate: ${displaySub} — Year ${num} already exists for this teacher.`;
 
-    return null; // OK
+    if (duplicate) {
+      return `Duplicate assignment: ${displaySubject} already exists for ${className}.`;
+    }
+
+    return null;
   };
 
-  // ---------- actions ----------
-  function handleAddSubjects(e) {
-    e?.preventDefault();
+  function handleAddSubjects(event) {
+    event?.preventDefault();
     setError("");
 
-    const msg = validatePair(subject, year);
-    if (msg) {
-      setError(msg);
+    const message = validatePair(subject, year, lessonsPerWeek);
+    if (message) {
+      setError(message);
       return;
     }
 
-    const num = Number(year.trim());
-    const displaySub = norm(subject);
-
+    const yearValue = Number(year.trim());
     dispatch({
       type: "ADD_SUBJECT_CLASS",
-      payload: { subject: displaySub, class: `Year ${num}` },
+      payload: {
+        subject: norm(subject),
+        class: formatClassName(classPrefix, yearValue),
+        lessonsPerWeek: Number(lessonsPerWeek.trim()),
+      },
     });
 
     setSubject("");
     setYear("");
+    setLessonsPerWeek("3");
     setTimeout(() => {
-      const el =
+      const input =
         subjectInputRef.current?.querySelector("input") || subjectInputRef.current;
-      el?.focus?.();
+      input?.focus?.();
     }, 40);
   }
 
@@ -213,25 +273,23 @@ export default function SubjectClassInput({
       type: "REMOVE_SUBJECT",
       payload: { teacherIndex: currentIndex, subjectIndex: index },
     });
-    if (index === editingIndex) cancelEdit();
+
+    if (index === editingIndex) {
+      cancelEdit();
+    }
   }
 
-  function handleBack() {
-    dispatch({ type: "PREV_TEACHER" });
-  }
-
-  function handleSkipOrNext() {
-    dispatch({ type: "NEXT_TEACHER" });
-  }
-
-  // ---------- edit handlers ----------
   function startEdit(index) {
-    const s = teacher?.subjects?.[index];
-    if (!s) return;
+    const entry = teacher?.subjects?.[index];
+    if (!entry) {
+      return;
+    }
+
     setEditingIndex(index);
-    setEditSubject(s.subject ?? "");
-    const match = (s.class || "").match(/(\d+)/);
-    setEditYear(match ? match[1] : "");
+    setEditSubject(entry.subject ?? "");
+    const yearMatch = (entry.class || "").match(/(\d+)/);
+    setEditYear(yearMatch ? yearMatch[1] : "");
+    setEditLessonsPerWeek(String(entry.lessonsPerWeek ?? 3));
     setTimeout(() => editRef.current?.focus(), 50);
     setError("");
   }
@@ -240,35 +298,38 @@ export default function SubjectClassInput({
     setEditingIndex(-1);
     setEditSubject("");
     setEditYear("");
+    setEditLessonsPerWeek("3");
     setError("");
   }
 
   function saveEdit(index) {
     setError("");
 
-    const msg = validatePair(editSubject, editYear, { editing: true, excludeIndex: index });
-    if (msg) {
-      setError(msg);
+    const message = validatePair(editSubject, editYear, editLessonsPerWeek, {
+      editing: true,
+      excludeIndex: index,
+    });
+    if (message) {
+      setError(message);
       return;
     }
 
-    const num = Number((editYear || "").trim());
-    const displaySub = norm(editSubject);
-
+    const yearValue = Number(editYear.trim());
     dispatch({
       type: "EDIT_SUBJECT",
       payload: {
         teacherIndex: currentIndex,
         subjectIndex: index,
-        subject: displaySub,
-        class: `Year ${num}`,
+        subject: norm(editSubject),
+        class: formatClassName(classPrefix, yearValue),
+        lessonsPerWeek: Number(editLessonsPerWeek.trim()),
       },
     });
     cancelEdit();
   }
 
   const gradientTextStyle = {
-    background: "linear-gradient(90deg,#ff4c60 0%, #ff8aa1 40%, #a18cd1 100%)",
+    background: "linear-gradient(90deg, #ff4c60 0%, #ff8aa1 40%, #a18cd1 100%)",
     WebkitBackgroundClip: "text",
     backgroundClip: "text",
     color: "transparent",
@@ -284,56 +345,42 @@ export default function SubjectClassInput({
               style={gradientTextStyle}
               aria-live="polite"
             >
-              Add Subjects for {teacher?.name ?? "—"}{" "}
-              <span className="text-sm font-medium text-[#666]">
-                — ({Math.min(currentIndex + 1, totalTeachers)} of {Math.max(totalTeachers, 1)})
+              Add Subjects for {teacher?.name ?? "Unknown"}
+              <span className="text-sm font-medium text-[#666] ml-2">
+                ({Math.min(currentIndex + 1, totalTeachers)} of {Math.max(totalTeachers, 1)})
               </span>
             </h2>
             <p className="mt-1 text-sm text-[#555]">
-              Add a subject and pick the Year (e.g. Maths — Year 3). Use Enter to add.
+              Add each teacher-class assignment with the number of lessons it should
+              appear every week.
             </p>
           </div>
 
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={handleBack}
+              onClick={() => dispatch({ type: "PREV_TEACHER" })}
               aria-label="Go back"
               className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white/40 backdrop-blur-sm"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path
-                  d="M15 18l-6-6 6-6"
-                  stroke="#333"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span className="text-sm text-[#333]">Back</span>
+              Back
             </button>
 
             <button
               type="button"
-              onClick={handleSkipOrNext}
-              aria-label="Skip or Next"
+              onClick={() => dispatch({ type: "NEXT_TEACHER" })}
+              aria-label="Skip or next"
               className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-100"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M5 12h14" stroke="#333" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M11 6l6 6-6 6" stroke="#333" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span className="text-sm text-[#333]">Skip</span>
+              Skip
             </button>
           </div>
         </div>
 
-        {/* Add form */}
-        <form onSubmit={handleAddSubjects} className="flex gap-2 items-stretch">
-          {/* SUBJECT with MUI Autocomplete */}
-          <div className="relative flex-1" ref={subjectInputRef}>
+        <form onSubmit={handleAddSubjects} className="grid gap-3 lg:grid-cols-[2fr,120px,140px,auto]">
+          <div className="relative" ref={subjectInputRef}>
             <Autocomplete
-              freeSolo // we still validate; allows acronyms not in list
+              freeSolo
               options={subjectOptions}
               inputValue={subject}
               onInputChange={(_, newInput) => {
@@ -341,15 +388,19 @@ export default function SubjectClassInput({
                 setError("");
               }}
               onChange={(_, newValue) => {
-                if (typeof newValue === "string") setSubject(newValue);
-                else if (newValue) setSubject(String(newValue));
-                else setSubject("");
+                if (typeof newValue === "string") {
+                  setSubject(newValue);
+                } else if (newValue) {
+                  setSubject(String(newValue));
+                } else {
+                  setSubject("");
+                }
               }}
               autoHighlight
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Subject (e.g. Maths, CCA)"
+                  label="Subject"
                   inputProps={{
                     ...params.inputProps,
                     "aria-label": "Subject",
@@ -362,132 +413,144 @@ export default function SubjectClassInput({
             />
           </div>
 
-          {/* YEAR */}
-          <div className="flex items-center gap-2">
-            <label htmlFor="yearInput" className="text-sm text-[#444] font-medium">
-              Year
-            </label>
+          <label className="flex flex-col gap-1 text-sm text-[#444]">
+            <span>Year</span>
             <input
-              id="yearInput"
               type="number"
               inputMode="numeric"
               min={minYear}
               max={maxYear}
               value={year}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === "") {
-                  setYear("");
-                  return;
-                }
-                setYear(clampYear(val));
-              }}
-              className="w-24 px-3 py-2 rounded-lg shadow-inner outline-none text-center"
+              onChange={(event) => setYear(clampYear(event.target.value))}
+              className="px-3 py-3 rounded-lg shadow-inner outline-none text-center"
               aria-label="Year number"
             />
-          </div>
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm text-[#444]">
+            <span>Lessons / week</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={MAX_LESSONS_PER_WEEK}
+              value={lessonsPerWeek}
+              onChange={(event) => setLessonsPerWeek(clampLessons(event.target.value))}
+              className="px-3 py-3 rounded-lg shadow-inner outline-none text-center"
+              aria-label="Lessons per week"
+            />
+          </label>
 
           <button
             type="submit"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg"
+            className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-green-500 text-white rounded-lg"
             aria-label="Add subject"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
             Add
           </button>
         </form>
 
+        <div className="text-xs text-[#666]">
+          Classes will be saved as {formatClassName(classPrefix, minYear)} to{" "}
+          {formatClassName(classPrefix, maxYear)}.
+        </div>
+
         {error && <div className="text-red-600 text-sm">{error}</div>}
 
-        {/* Subjects list with edit inline */}
         <div>
           <AnimatePresence>
             {subjects.length === 0 ? (
-              <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <p className="text-sm text-[#666]">No subjects yet for this teacher.</p>
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <p className="text-sm text-[#666]">
+                  No subject assignments yet for this teacher.
+                </p>
               </motion.div>
             ) : (
-              subjects.map((s, idx) => {
-                const isEditing = idx === editingIndex;
+              subjects.map((entry, index) => {
+                const isEditing = index === editingIndex;
                 return (
                   <motion.div
-                    key={idx}
+                    key={`${entry.subject}-${entry.class}-${index}`}
                     layout
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 6 }}
-                    className="flex items-center justify-between gap-3 px-3 py-2 mb-2 rounded-lg bg-white/30"
+                    className="flex items-center justify-between gap-3 px-3 py-3 mb-2 rounded-lg bg-white/30"
                   >
                     {!isEditing ? (
                       <>
                         <div>
-                          <div className="font-medium text-[#222]">{s.subject}</div>
-                          <div className="text-sm text-[#666]">{s.class}</div>
+                          <div className="font-medium text-[#222]">{entry.subject}</div>
+                          <div className="text-sm text-[#666]">
+                            {entry.class} · {entry.lessonsPerWeek} lesson
+                            {entry.lessonsPerWeek === 1 ? "" : "s"} per week
+                          </div>
                         </div>
 
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => startEdit(idx)}
-                            aria-label={`Edit ${s.subject}`}
+                            onClick={() => startEdit(index)}
+                            aria-label={`Edit ${entry.subject}`}
                             className="p-2 rounded-md bg-blue-50"
                           >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-                              <path
-                                d="M3 21v-3.6L14.3 5.1a1 1 0 0 1 1.4 0l1.2 1.2a1 1 0 0 1 0 1.4L6.6 20.6H3z"
-                                stroke="#0c4a6e"
-                                strokeWidth="1.4"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                              <path d="M14.7 4.3l4 4" stroke="#0c4a6e" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
+                            Edit
                           </button>
 
                           <button
                             type="button"
-                            onClick={() => handleRemoveSubject(idx)}
-                            aria-label={`Remove ${s.subject}`}
+                            onClick={() => handleRemoveSubject(index)}
+                            aria-label={`Remove ${entry.subject}`}
                             className="p-2 rounded-md bg-red-50"
                           >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-                              <path
-                                d="M3 6h18M8 6v14a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6M10 11v6M14 11v6"
-                                stroke="#c53030"
-                                strokeWidth="1.6"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
+                            Remove
                           </button>
                         </div>
                       </>
                     ) : (
-                      // Inline edit row
                       <>
-                        <div className="flex-1 flex gap-2 items-stretch">
+                        <div className="flex-1 grid gap-2 lg:grid-cols-[2fr,110px,130px]">
                           <input
                             ref={editRef}
                             value={editSubject}
-                            onChange={(e) => setEditSubject(e.target.value)}
-                            className="flex-1 px-3 py-2 rounded-lg shadow-inner outline-none"
+                            onChange={(event) => setEditSubject(event.target.value)}
+                            className="px-3 py-2 rounded-lg shadow-inner outline-none"
                             aria-label="Edit subject"
                           />
                           <input
                             value={editYear}
-                            onChange={(e) => setEditYear(clampYear(e.target.value))}
-                            className="w-24 px-3 py-2 rounded-lg shadow-inner outline-none text-center"
+                            onChange={(event) => setEditYear(clampYear(event.target.value))}
+                            className="px-3 py-2 rounded-lg shadow-inner outline-none text-center"
                             aria-label="Edit year"
+                          />
+                          <input
+                            value={editLessonsPerWeek}
+                            onChange={(event) =>
+                              setEditLessonsPerWeek(clampLessons(event.target.value))
+                            }
+                            className="px-3 py-2 rounded-lg shadow-inner outline-none text-center"
+                            aria-label="Edit lessons per week"
                           />
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <button type="button" onClick={() => saveEdit(idx)} className="px-3 py-1 rounded-md bg-green-500 text-white">
+                          <button
+                            type="button"
+                            onClick={() => saveEdit(index)}
+                            className="px-3 py-1 rounded-md bg-green-500 text-white"
+                          >
                             Save
                           </button>
-                          <button type="button" onClick={cancelEdit} className="px-3 py-1 rounded-md bg-gray-200">
+                          <button
+                            type="button"
+                            onClick={cancelEdit}
+                            className="px-3 py-1 rounded-md bg-gray-200"
+                          >
                             Cancel
                           </button>
                         </div>
@@ -503,15 +566,14 @@ export default function SubjectClassInput({
         <div className="flex gap-2 mt-2">
           <button
             type="button"
-            onClick={handleSkipOrNext}
+            onClick={() => dispatch({ type: "NEXT_TEACHER" })}
             className="flex-1 py-2 bg-blue-500 text-white rounded-lg"
             aria-label="Next teacher"
           >
-            {currentIndex + 1 >= totalTeachers ? "Finish" : "Next Teacher"}
+            {currentIndex + 1 >= totalTeachers ? "Finish Assignments" : "Next Teacher"}
           </button>
         </div>
       </div>
     </NeumorphicCard>
   );
 }
-  

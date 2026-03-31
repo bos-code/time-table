@@ -1,6 +1,3 @@
-// timetableReducer.js
-
-// ===== Lagos Curriculum (broad, safe baseline) =====
 const LAGOS_CURRICULUM = {
   primary: [
     "English Studies",
@@ -59,12 +56,9 @@ const LAGOS_CURRICULUM = {
   ],
 };
 
-// ===== Your school defaults (checked by default) =====
 const MY_SCHOOL_DEFAULTS = {
-  // default classes: Year 7–12 (JSS1–SS3)
   classRange: { from: 7, to: 12, prefix: "Year " },
   subjects: [
-    // JSS core
     "English Language",
     "Mathematics",
     "Basic Science",
@@ -76,7 +70,6 @@ const MY_SCHOOL_DEFAULTS = {
     "Yoruba",
     "Agricultural Science",
     "PHE",
-    // SSS core
     "Biology",
     "Chemistry",
     "Physics",
@@ -88,17 +81,24 @@ const MY_SCHOOL_DEFAULTS = {
   levels: { primary: false, jss: true, sss: true },
 };
 
-// ===== Helpers =====
 const mkClasses = ({ from, to, prefix = "Year " }) =>
   Array.from(
     { length: Math.max(0, (to ?? 0) - (from ?? 0) + 1) },
-    (_, i) => `${prefix}${(from ?? 0) + i}`
+    (_, index) => `${prefix}${(from ?? 0) + index}`.trim()
   );
 
-const deepUnique = (arr) =>
-  Array.from(new Set(arr.filter(Boolean).map((s) => s.trim()))).sort((a, b) =>
-    a.localeCompare(b)
+const deepUnique = (values) =>
+  Array.from(new Set(values.filter(Boolean).map((value) => value.trim()))).sort(
+    (left, right) => left.localeCompare(right)
   );
+
+const defaultDays = () => [
+  { id: "mon", label: "Monday", enabled: true },
+  { id: "tue", label: "Tuesday", enabled: true },
+  { id: "wed", label: "Wednesday", enabled: true },
+  { id: "thu", label: "Thursday", enabled: true },
+  { id: "fri", label: "Friday", enabled: true },
+];
 
 const defaultPeriods = () => [
   {
@@ -187,240 +187,362 @@ const defaultPeriods = () => [
   },
 ];
 
-// ===== Validation helpers (throwing errors) =====
-function toMinutes(t) {
-  const m = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(String(t || "").trim());
-  if (!m) throw new Error(`Invalid time: "${t}". Use HH:MM (24h).`);
-  const hh = parseInt(m[1], 10),
-    mm = parseInt(m[2], 10);
-  return hh * 60 + mm;
+function toMinutes(time) {
+  const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(String(time || "").trim());
+  if (!match) {
+    throw new Error(`Invalid time "${time}". Use HH:MM in 24-hour format.`);
+  }
+
+  const hour = parseInt(match[1], 10);
+  const minute = parseInt(match[2], 10);
+  return hour * 60 + minute;
 }
+
 function validatePeriodsOrThrow(periods) {
   if (!Array.isArray(periods) || periods.length === 0) {
-    throw new Error("No periods defined.");
+    throw new Error("Add at least one period before continuing.");
   }
-  let lastEnd = 0;
-  for (const p of periods) {
-    if (!p.label) throw new Error("Every period must have a label.");
-    const s = toMinutes(p.start),
-      e = toMinutes(p.end);
-    if (e <= s)
-      throw new Error(`"${p.label}" end time must be after start time.`);
-    if (s < lastEnd)
-      throw new Error(`"${p.label}" overlaps a previous period.`);
-    lastEnd = e;
+
+  let previousEnd = 0;
+  for (const period of periods) {
+    if (!period.label?.trim()) {
+      throw new Error("Every period needs a label.");
+    }
+
+    const start = toMinutes(period.start);
+    const end = toMinutes(period.end);
+    if (end <= start) {
+      throw new Error(`"${period.label}" must end after it starts.`);
+    }
+    if (start < previousEnd) {
+      throw new Error(`"${period.label}" overlaps the previous period.`);
+    }
+    previousEnd = end;
   }
 }
+
 function validateRangeOrThrow(range) {
-  const from = Number(range?.from),
-    to = Number(range?.to);
-  if (!Number.isInteger(from) || !Number.isInteger(to))
-    throw new Error("Class range must be integers.");
-  if (from < 1 || to < 1) throw new Error("Class range must be positive.");
-  if (to < from) throw new Error("Class range: 'to' must be >= 'from'.");
+  const from = Number(range?.from);
+  const to = Number(range?.to);
+  if (!Number.isInteger(from) || !Number.isInteger(to)) {
+    throw new Error("Class range values must be whole numbers.");
+  }
+  if (from < 1 || to < 1) {
+    throw new Error("Class range values must be positive.");
+  }
+  if (to < from) {
+    throw new Error("The end of the class range must be after the start.");
+  }
 }
+
 function validateSubjectsOrThrow(subjects) {
   if (!Array.isArray(subjects) || subjects.length === 0) {
     throw new Error("Select at least one subject.");
   }
 }
 
-// ===== Initial state (yours + validation slice) =====
+function validateDaysOrThrow(days) {
+  if (!Array.isArray(days) || days.every((day) => !day.enabled)) {
+    throw new Error("Enable at least one school day.");
+  }
+}
+
+function clampLessonsPerWeek(value) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    return 1;
+  }
+  return parsed;
+}
+
+function withInputChange(state, patch) {
+  return {
+    ...state,
+    ...patch,
+    generatedTimetable: null,
+    generation: { loading: false, error: null },
+  };
+}
+
 export const initialState = {
   screen: "teacher-input",
   teachers: [],
   currentTeacherIndex: 0,
-
-  // Validation slice
+  generatedTimetable: null,
+  generation: {
+    loading: false,
+    error: null,
+  },
   validation: {
     levels: { ...MY_SCHOOL_DEFAULTS.levels },
     classRange: { ...MY_SCHOOL_DEFAULTS.classRange },
     classes: mkClasses(MY_SCHOOL_DEFAULTS.classRange),
     subjectsCatalog: {
       ...LAGOS_CURRICULUM,
-      custom: [], // user-added
+      custom: [],
     },
     subjectsSelected: deepUnique([
       ...MY_SCHOOL_DEFAULTS.subjects,
       ...LAGOS_CURRICULUM.jss,
       ...LAGOS_CURRICULUM.sss,
     ]),
+    days: defaultDays(),
     periods: defaultPeriods(),
   },
 };
 
-// ===== Reducer =====
 export function reducer(state, action) {
   switch (action.type) {
-    // === Your existing teacher flow ===
-    case "ADD_TEACHER":
-      return {
-        ...state,
-        teachers: [...state.teachers, { name: action.payload, subjects: [] }],
-      };
+    case "ADD_TEACHER": {
+      const teacher = { name: action.payload, subjects: [] };
+      return withInputChange(state, {
+        teachers: [...state.teachers, teacher],
+      });
+    }
 
     case "CONFIRM_TEACHERS":
-      // move to validation screen next
-      return { ...state, screen: "validation" };
+      return withInputChange(state, { screen: "validation" });
 
     case "ADD_SUBJECT_CLASS":
-      return {
-        ...state,
-        teachers: state.teachers.map((t, idx) =>
-          idx === state.currentTeacherIndex
-            ? { ...t, subjects: [...t.subjects, action.payload] }
-            : t
+      return withInputChange(state, {
+        teachers: state.teachers.map((teacher, index) =>
+          index === state.currentTeacherIndex
+            ? {
+                ...teacher,
+                subjects: [
+                  ...teacher.subjects,
+                  {
+                    ...action.payload,
+                    lessonsPerWeek: clampLessonsPerWeek(
+                      action.payload.lessonsPerWeek
+                    ),
+                  },
+                ],
+              }
+            : teacher
         ),
-      };
+      });
 
     case "NEXT_TEACHER":
       if (state.currentTeacherIndex + 1 < state.teachers.length) {
-        return { ...state, currentTeacherIndex: state.currentTeacherIndex + 1 };
+        return withInputChange(state, {
+          currentTeacherIndex: state.currentTeacherIndex + 1,
+        });
       }
-      return { ...state, screen: "summary" };
+      return withInputChange(state, { screen: "summary" });
 
     case "PREV_TEACHER":
       if (state.currentTeacherIndex - 1 >= 0) {
-        return { ...state, currentTeacherIndex: state.currentTeacherIndex - 1 };
+        return withInputChange(state, {
+          currentTeacherIndex: state.currentTeacherIndex - 1,
+        });
       }
       return state;
 
+    case "BACK_TO_ASSIGNMENTS":
+      return withInputChange(state, {
+        screen: "subject-class-input",
+        currentTeacherIndex: Math.max(0, state.teachers.length - 1),
+      });
+
+    case "VIEW_SUMMARY":
+      return { ...state, screen: "summary" };
+
     case "EDIT_TEACHER": {
       const { index, name } = action.payload;
-      const updated = state.teachers.map((t, i) =>
-        i === index ? { ...t, name } : t
-      );
-      return { ...state, teachers: updated };
+      return withInputChange(state, {
+        teachers: state.teachers.map((teacher, teacherIndex) =>
+          teacherIndex === index ? { ...teacher, name } : teacher
+        ),
+      });
     }
 
     case "REMOVE_TEACHER": {
       const { index } = action.payload;
-      const updated = state.teachers.filter((_, i) => i !== index);
-      const clampedIndex = Math.max(
+      const teachers = state.teachers.filter((_, teacherIndex) => teacherIndex !== index);
+      const currentTeacherIndex = Math.max(
         0,
-        Math.min(state.currentTeacherIndex, Math.max(0, updated.length - 1))
+        Math.min(state.currentTeacherIndex, Math.max(teachers.length - 1, 0))
       );
-      return { ...state, teachers: updated, currentTeacherIndex: clampedIndex };
+
+      return withInputChange(state, {
+        teachers,
+        currentTeacherIndex,
+        screen: teachers.length === 0 ? "teacher-input" : state.screen,
+      });
     }
 
     case "EDIT_SUBJECT": {
-      const {
-        teacherIndex,
-        subjectIndex,
-        subject,
-        class: className,
-      } = action.payload;
-      const updated = state.teachers.map((teacher, tIdx) =>
-        tIdx === teacherIndex
-          ? {
-              ...teacher,
-              subjects: teacher.subjects.map((subj, sIdx) =>
-                sIdx === subjectIndex ? { subject, class: className } : subj
-              ),
-            }
-          : teacher
-      );
-      return { ...state, teachers: updated };
+      const { teacherIndex, subjectIndex, subject, class: className, lessonsPerWeek } =
+        action.payload;
+      return withInputChange(state, {
+        teachers: state.teachers.map((teacher, currentTeacherIndex) =>
+          currentTeacherIndex === teacherIndex
+            ? {
+                ...teacher,
+                subjects: teacher.subjects.map((entry, currentSubjectIndex) =>
+                  currentSubjectIndex === subjectIndex
+                    ? {
+                        subject,
+                        class: className,
+                        lessonsPerWeek: clampLessonsPerWeek(lessonsPerWeek),
+                      }
+                    : entry
+                ),
+              }
+            : teacher
+        ),
+      });
     }
 
     case "REMOVE_SUBJECT": {
       const { teacherIndex, subjectIndex } = action.payload;
-      const updated = state.teachers.map((teacher, tIdx) =>
-        tIdx === teacherIndex
-          ? {
-              ...teacher,
-              subjects: teacher.subjects.filter((_, i) => i !== subjectIndex),
-            }
-          : teacher
-      );
-      return { ...state, teachers: updated };
+      return withInputChange(state, {
+        teachers: state.teachers.map((teacher, currentTeacherIndex) =>
+          currentTeacherIndex === teacherIndex
+            ? {
+                ...teacher,
+                subjects: teacher.subjects.filter(
+                  (_, currentSubjectIndex) => currentSubjectIndex !== subjectIndex
+                ),
+              }
+            : teacher
+        ),
+      });
     }
 
-    case "CONFIRM_AND_GENERATE":
-      return { ...state, screen: "timetable-generated" };
+    case "GENERATE_TIMETABLE_START":
+      return {
+        ...state,
+        generation: {
+          loading: true,
+          error: null,
+        },
+      };
 
-  
-      return { ...state, screen: "timetable-generated" };  
-    case "RESET":
-      return initialState;
+    case "GENERATE_TIMETABLE_SUCCESS":
+      return {
+        ...state,
+        screen: "timetable-generated",
+        generatedTimetable: action.payload,
+        generation: {
+          loading: false,
+          error: null,
+        },
+      };
 
-    // === Validation slice actions ===
+    case "GENERATE_TIMETABLE_FAILURE":
+      return {
+        ...state,
+        generation: {
+          loading: false,
+          error: action.payload,
+        },
+      };
+
+    case "RESET_GENERATION":
+      return {
+        ...state,
+        generatedTimetable: null,
+        generation: {
+          loading: false,
+          error: null,
+        },
+      };
+
     case "VALIDATION_TOGGLE_LEVEL": {
-      const { level, value } = action.payload; // "primary" | "jss" | "sss"
-      const levels = { ...state.validation.levels, [level]: !!value };
-      console.log(levels);
-      return { ...state, validation: { ...state.validation, levels } };
+      const { level, value } = action.payload;
+      return withInputChange(state, {
+        validation: {
+          ...state.validation,
+          levels: { ...state.validation.levels, [level]: !!value },
+        },
+      });
     }
 
     case "VALIDATION_TOGGLE_SUBJECT": {
       const subject = String(action.payload || "").trim();
-      const has = state.validation.subjectsSelected.includes(subject);
-      const subjectsSelected = has
-        ? state.validation.subjectsSelected.filter((s) => s !== subject)
+      const hasSubject = state.validation.subjectsSelected.includes(subject);
+      const subjectsSelected = hasSubject
+        ? state.validation.subjectsSelected.filter((entry) => entry !== subject)
         : deepUnique([...state.validation.subjectsSelected, subject]);
-      return {
-        ...state,
+
+      return withInputChange(state, {
         validation: { ...state.validation, subjectsSelected },
-      };
+      });
     }
 
     case "VALIDATION_ADD_SUBJECT": {
       const subject = String(action.payload || "").trim();
-      if (!subject) return state;
-      const subjectsCatalog = {
-        ...state.validation.subjectsCatalog,
-        custom: deepUnique([
-          ...(state.validation.subjectsCatalog.custom || []),
-          subject,
-        ]),
-      };
-      const subjectsSelected = deepUnique([
-        ...state.validation.subjectsSelected,
-        subject,
-      ]);
-      return {
-        ...state,
-        validation: { ...state.validation, subjectsCatalog, subjectsSelected },
-      };
+      if (!subject) {
+        return state;
+      }
+
+      return withInputChange(state, {
+        validation: {
+          ...state.validation,
+          subjectsCatalog: {
+            ...state.validation.subjectsCatalog,
+            custom: deepUnique([
+              ...(state.validation.subjectsCatalog.custom || []),
+              subject,
+            ]),
+          },
+          subjectsSelected: deepUnique([
+            ...state.validation.subjectsSelected,
+            subject,
+          ]),
+        },
+      });
     }
 
     case "VALIDATION_SET_PERIODS": {
       const periods = Array.isArray(action.payload)
         ? action.payload
         : state.validation.periods;
-      try {
-        validatePeriodsOrThrow(periods);
-        return { ...state, validation: { ...state.validation, periods } };
-      } catch (err) {
-        // kceep state, rely on UI to show error
-        console.log(err);
-        return state;
-      }
+      validatePeriodsOrThrow(periods);
+
+      return withInputChange(state, {
+        validation: { ...state.validation, periods },
+      });
     }
 
-    case "VALIDATION_CONFIRM": {
-      // Final check before moving to assignments
-      validateRangeOrThrow(state.validation.classRange);
-      validateSubjectsOrThrow(state.validation.subjectsSelected);
-      validatePeriodsOrThrow(state.validation.periods);
-      return { ...state, screen: "subject-class-input" }; // keep your flow name
+    case "VALIDATION_TOGGLE_DAY": {
+      const dayId = action.payload;
+      return withInputChange(state, {
+        validation: {
+          ...state.validation,
+          days: state.validation.days.map((day) =>
+            day.id === dayId ? { ...day, enabled: !day.enabled } : day
+          ),
+        },
+      });
     }
-
-    default:
-      return state;
 
     case "VALIDATION_SET_CLASS_RANGE": {
       const classRange = { ...state.validation.classRange, ...action.payload };
-      try {
-        validateRangeOrThrow(classRange);
-        const classes = mkClasses(classRange);
-        return {
-          ...state,
-          validation: { ...state.validation, classRange, classes },
-        };
-      } catch (err) {
-        if (!err) return state;
-      }
+      validateRangeOrThrow(classRange);
+
+      return withInputChange(state, {
+        validation: {
+          ...state.validation,
+          classRange,
+          classes: mkClasses(classRange),
+        },
+      });
     }
+
+    case "VALIDATION_CONFIRM":
+      validateRangeOrThrow(state.validation.classRange);
+      validateSubjectsOrThrow(state.validation.subjectsSelected);
+      validatePeriodsOrThrow(state.validation.periods);
+      validateDaysOrThrow(state.validation.days);
+      return withInputChange(state, { screen: "subject-class-input" });
+
+    case "RESET":
+      return initialState;
+
+    default:
+      return state;
   }
 }

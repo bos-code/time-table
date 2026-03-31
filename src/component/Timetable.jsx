@@ -1,83 +1,212 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo, useState } from "react";
+import NeumorphicCard from "./neuCard";
 
-const TimetableFetcher = () => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [timetable, setTimetable] = useState(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch(
-          "https://time-table-production.up.railway.app/api/generate"
-        );
-
-        if (!response.ok) {
-          const text = await response.text();
-          throw new Error(text || "Failed to fetch timetable");
-        }
-
-        const data = await response.json();
-        setTimetable(data);
-      } catch (err) {
-        console.error(err);
-        setError(err.message || "Error fetching timetable");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  if (loading) {
-    return <p className="text-gray-600">Loading timetable...</p>;
-  }
-
-  if (error) {
-    return <p className="text-red-600">Error: {error}</p>;
-  }
-
-  if (!timetable) {
-    return <p className="text-gray-600">No timetable available.</p>;
+function ScheduleGrid({ title, schedules = [] }) {
+  if (!schedules.length) {
+    return (
+      <div className="rounded-2xl border bg-base-100 px-4 py-4 text-sm text-gray-500">
+        No schedule data available for {title.toLowerCase()}.
+      </div>
+    );
   }
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-semibold mb-4">Generated Timetable</h2>
-      <table className="min-w-full border border-gray-300">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="border px-4 py-2">Teacher</th>
-            <th className="border px-4 py-2">Class</th>
-            <th className="border px-4 py-2">Subject</th>
-            <th className="border px-4 py-2">Period</th>
-          </tr>
-        </thead>
-        <tbody>
-          {timetable.assignments && timetable.assignments.length > 0 ? (
-            timetable.assignments.map((row, index) => (
-              <tr key={index}>
-                <td className="border px-4 py-2">{row.teacher}</td>
-                <td className="border px-4 py-2">{row.className}</td>
-                <td className="border px-4 py-2">{row.subject}</td>
-                <td className="border px-4 py-2">{row.period}</td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td className="border px-4 py-2 text-center" colSpan="4">
-                No assignments found.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+    <div className="space-y-6">
+      {schedules.map((schedule) => (
+        <div key={schedule.name} className="rounded-2xl border bg-base-100 p-4">
+          <h3 className="text-lg font-semibold mb-3">{schedule.name}</h3>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-separate border-spacing-0">
+              <thead>
+                <tr>
+                  <th className="sticky left-0 z-10 bg-base-100 border px-4 py-2 text-left">
+                    Period
+                  </th>
+                  {schedule.days.map((day) => (
+                    <th key={day.id} className="border px-4 py-2 text-left">
+                      {day.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {schedule.rows.map((row) => (
+                  <tr key={row.period.id}>
+                    <th className="sticky left-0 z-10 bg-base-100 border px-4 py-3 text-left align-top min-w-40">
+                      <div className="font-medium">{row.period.label}</div>
+                      <div className="text-xs text-gray-500">
+                        {row.period.start} - {row.period.end}
+                      </div>
+                    </th>
+                    {row.cells.map((cell) => (
+                      <td
+                        key={`${row.period.id}-${cell.day.id}`}
+                        className="border px-4 py-3 min-w-44 align-top"
+                      >
+                        {cell.entry ? (
+                          <div className="space-y-1">
+                            <div className="font-medium">{cell.entry.subject}</div>
+                            <div className="text-sm text-gray-600">
+                              {cell.entry.secondaryLabel}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-400">Free</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
     </div>
   );
-};
+}
 
-export default TimetableFetcher;
+export default function TimetableView({ timetable, dispatch }) {
+  const [activeView, setActiveView] = useState("class");
+
+  const assignments = timetable?.assignments || [];
+  const stats = timetable?.meta || {};
+  const scheduleOptions = useMemo(
+    () => ({
+      class: timetable?.scheduleByClass || [],
+      teacher: timetable?.scheduleByTeacher || [],
+    }),
+    [timetable]
+  );
+
+  if (!timetable) {
+    return (
+      <NeumorphicCard className="w-full">
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold">Generated Timetable</h2>
+          <p className="text-sm text-gray-500">
+            No generated timetable is loaded yet.
+          </p>
+          <button
+            type="button"
+            onClick={() => dispatch({ type: "VIEW_SUMMARY" })}
+            className="px-4 py-2 rounded-lg border bg-base-100 hover:shadow"
+          >
+            Back to Summary
+          </button>
+        </div>
+      </NeumorphicCard>
+    );
+  }
+
+  return (
+    <NeumorphicCard className="w-full">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold">Generated Timetable</h2>
+            <p className="text-sm text-gray-500">
+              OR-Tools solved {stats.lessonsScheduled || assignments.length} lessons
+              across {stats.dayCount || 0} day{stats.dayCount === 1 ? "" : "s"}.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveView("class")}
+              className={`px-4 py-2 rounded-lg border ${
+                activeView === "class" ? "bg-base-100 shadow" : "bg-base-200"
+              }`}
+            >
+              By Class
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveView("teacher")}
+              className={`px-4 py-2 rounded-lg border ${
+                activeView === "teacher" ? "bg-base-100 shadow" : "bg-base-200"
+              }`}
+            >
+              By Teacher
+            </button>
+            <button
+              type="button"
+              onClick={() => dispatch({ type: "VIEW_SUMMARY" })}
+              className="px-4 py-2 rounded-lg border bg-base-100 hover:shadow"
+            >
+              Back to Summary
+            </button>
+            <button
+              type="button"
+              onClick={() => dispatch({ type: "RESET" })}
+              className="px-4 py-2 rounded-lg border bg-base-100 hover:shadow"
+            >
+              Start Over
+            </button>
+          </div>
+        </div>
+
+        <section className="grid gap-4 md:grid-cols-4">
+          <div className="rounded-2xl border bg-base-100 px-4 py-3">
+            <div className="text-sm text-gray-500">Solver status</div>
+            <div className="text-2xl font-semibold">{stats.solverStatus || "Unknown"}</div>
+          </div>
+          <div className="rounded-2xl border bg-base-100 px-4 py-3">
+            <div className="text-sm text-gray-500">Teachers</div>
+            <div className="text-2xl font-semibold">{stats.teacherCount || 0}</div>
+          </div>
+          <div className="rounded-2xl border bg-base-100 px-4 py-3">
+            <div className="text-sm text-gray-500">Classes</div>
+            <div className="text-2xl font-semibold">{stats.classCount || 0}</div>
+          </div>
+          <div className="rounded-2xl border bg-base-100 px-4 py-3">
+            <div className="text-sm text-gray-500">Objective score</div>
+            <div className="text-2xl font-semibold">
+              {stats.objectiveValue ?? "n/a"}
+            </div>
+          </div>
+        </section>
+
+        <ScheduleGrid
+          title={activeView === "class" ? "Classes" : "Teachers"}
+          schedules={scheduleOptions[activeView]}
+        />
+
+        <div className="rounded-2xl border bg-base-100 p-4">
+          <h3 className="text-lg font-semibold mb-3">Lesson Placements</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-separate border-spacing-0">
+              <thead>
+                <tr>
+                  {["Day", "Period", "Class", "Subject", "Teacher"].map((heading) => (
+                    <th key={heading} className="border px-4 py-2 text-left">
+                      {heading}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {assignments.map((assignment, index) => (
+                  <tr key={`${assignment.day}-${assignment.period}-${assignment.className}-${index}`}>
+                    <td className="border px-4 py-2">{assignment.day}</td>
+                    <td className="border px-4 py-2">
+                      {assignment.period}
+                      <div className="text-xs text-gray-500">
+                        {assignment.start} - {assignment.end}
+                      </div>
+                    </td>
+                    <td className="border px-4 py-2">{assignment.className}</td>
+                    <td className="border px-4 py-2">{assignment.subject}</td>
+                    <td className="border px-4 py-2">{assignment.teacher}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </NeumorphicCard>
+  );
+}
