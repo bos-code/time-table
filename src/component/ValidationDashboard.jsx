@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { FaCheck, FaExclamationTriangle, FaPlus } from "react-icons/fa";
 import NeumorphicCard from "./neuCard";
+import CustomSelect from "./CustomSelect";
 
 export default function ValidationDashboard({ state, dispatch }) {
   const [banner, setBanner] = useState(null);
@@ -146,15 +147,15 @@ export default function ValidationDashboard({ state, dispatch }) {
       </div>
 
       <section className="mb-6 grid gap-4 md:grid-cols-3">
-        <div className="rounded-2xl border bg-base-100 px-4 py-3">
+        <div className="ui-stat-card">
           <div className="text-sm text-gray-500">Active days</div>
           <div className="text-2xl font-semibold">{activeDays.length}</div>
         </div>
-        <div className="rounded-2xl border bg-base-100 px-4 py-3">
+        <div className="ui-stat-card">
           <div className="text-sm text-gray-500">Teaching periods / day</div>
           <div className="text-2xl font-semibold">{teachingPeriods.length}</div>
         </div>
-        <div className="rounded-2xl border bg-base-100 px-4 py-3">
+        <div className="ui-stat-card">
           <div className="text-sm text-gray-500">Slots per class / week</div>
           <div className="text-2xl font-semibold">{perClassCapacity}</div>
         </div>
@@ -179,8 +180,8 @@ export default function ValidationDashboard({ state, dispatch }) {
                   },
                 })
               }
-              className={`px-3 py-2 rounded-xl border hover:shadow ${
-                validation.levels[level.key] ? "bg-base-100" : "bg-base-200"
+              className={`ui-toggle-pill ${
+                validation.levels[level.key] ? "is-active" : ""
               }`}
             >
               <span className="inline-flex items-center gap-2">
@@ -201,9 +202,7 @@ export default function ValidationDashboard({ state, dispatch }) {
               onClick={() =>
                 dispatch({ type: "VALIDATION_TOGGLE_DAY", payload: day.id })
               }
-              className={`px-3 py-2 rounded-xl border hover:shadow ${
-                day.enabled ? "bg-base-100" : "bg-base-200 text-gray-400"
-              }`}
+              className={`ui-toggle-pill ${day.enabled ? "is-active" : ""}`}
             >
               <span className="inline-flex items-center gap-2">
                 {day.enabled && <FaCheck />}
@@ -218,7 +217,7 @@ export default function ValidationDashboard({ state, dispatch }) {
         <h3 className="font-semibold mb-2">Class Range</h3>
         <div className="grid gap-3 md:grid-cols-3">
           <label className="flex flex-col gap-2 text-sm">
-            <span>From</span>
+            <span className="ui-label">From</span>
             <input
               type="number"
               min={1}
@@ -226,11 +225,11 @@ export default function ValidationDashboard({ state, dispatch }) {
               onChange={(event) =>
                 setRange({ from: parseInt(event.target.value || "0", 10) })
               }
-              className="px-2 py-2 rounded-md border"
+              className="ui-input"
             />
           </label>
           <label className="flex flex-col gap-2 text-sm">
-            <span>To</span>
+            <span className="ui-label">To</span>
             <input
               type="number"
               min={validation.classRange.from}
@@ -238,25 +237,22 @@ export default function ValidationDashboard({ state, dispatch }) {
               onChange={(event) =>
                 setRange({ to: parseInt(event.target.value || "0", 10) })
               }
-              className="px-2 py-2 rounded-md border"
+              className="ui-input"
             />
           </label>
           <label className="flex flex-col gap-2 text-sm">
-            <span>Prefix</span>
+            <span className="ui-label">Prefix</span>
             <input
               value={validation.classRange.prefix}
               onChange={(event) => setRange({ prefix: event.target.value })}
-              className="px-2 py-2 rounded-md border"
+              className="ui-input"
             />
           </label>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
           {validation.classes.map((className) => (
-            <span
-              key={className}
-              className="px-2 py-1 text-xs rounded-md border bg-base-100"
-            >
+            <span key={className} className="ui-badge-soft text-xs">
               {className}
             </span>
           ))}
@@ -271,7 +267,7 @@ export default function ValidationDashboard({ state, dispatch }) {
           {allSubjects.map((subject) => (
             <label
               key={subject}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-base-100"
+              className="ui-check-card"
             >
               <input
                 type="checkbox"
@@ -282,6 +278,7 @@ export default function ValidationDashboard({ state, dispatch }) {
                     payload: subject,
                   })
                 }
+                className="ui-check"
               />
               <span className="text-sm">{subject}</span>
             </label>
@@ -293,11 +290,11 @@ export default function ValidationDashboard({ state, dispatch }) {
             placeholder="Add custom subject"
             value={newSubject}
             onChange={(event) => setNewSubject(event.target.value)}
-            className="px-3 py-2 rounded-lg border flex-1"
+            className="ui-input flex-1"
           />
           <button
             onClick={addCustomSubject}
-            className="px-3 py-2 rounded-lg border bg-base-100"
+            className="ui-button ui-button-soft"
           >
             <FaPlus className="inline mr-2" />
             Add
@@ -311,14 +308,14 @@ export default function ValidationDashboard({ state, dispatch }) {
           {validation.periods.map((period, index) => (
             <div
               key={period.id || index}
-              className="grid grid-cols-1 sm:grid-cols-5 gap-3 items-center px-3 py-2 rounded-xl border bg-base-100"
+              className="ui-row-card grid grid-cols-1 sm:grid-cols-5 gap-3 items-center"
             >
               <input
                 value={period.label}
                 onChange={(event) =>
                   updatePeriod(index, { label: event.target.value })
                 }
-                className="px-2 py-1 rounded-md border"
+                className="ui-input"
                 placeholder="Label"
               />
               <input
@@ -326,7 +323,7 @@ export default function ValidationDashboard({ state, dispatch }) {
                 onChange={(event) =>
                   updatePeriod(index, { start: event.target.value })
                 }
-                className="px-2 py-1 rounded-md border"
+                className="ui-input"
                 placeholder="HH:MM"
               />
               <input
@@ -334,22 +331,23 @@ export default function ValidationDashboard({ state, dispatch }) {
                 onChange={(event) =>
                   updatePeriod(index, { end: event.target.value })
                 }
-                className="px-2 py-1 rounded-md border"
+                className="ui-input"
                 placeholder="HH:MM"
               />
-              <select
+              <CustomSelect
                 value={period.type}
-                onChange={(event) =>
-                  updatePeriod(index, { type: event.target.value })
+                onChange={(newValue) =>
+                  updatePeriod(index, { type: newValue })
                 }
-                className="px-2 py-1 rounded-md border"
-              >
-                <option value="teaching">Teaching</option>
-                <option value="non-teaching">Non-Teaching</option>
-              </select>
+                options={[
+                  { value: "teaching", label: "Teaching" },
+                  { value: "non-teaching", label: "Non-Teaching" }
+                ]}
+                className="w-full"
+              />
               <button
                 onClick={() => removePeriod(index)}
-                className="px-2 py-1 rounded-md border hover:shadow"
+                className="ui-button ui-button-danger ui-button-sm"
               >
                 Remove
               </button>
@@ -359,7 +357,7 @@ export default function ValidationDashboard({ state, dispatch }) {
         <div className="mt-3">
           <button
             onClick={addPeriod}
-            className="px-3 py-2 rounded-lg border bg-base-100"
+            className="ui-button ui-button-soft"
           >
             <FaPlus className="inline mr-2" />
             Add Period
@@ -370,7 +368,7 @@ export default function ValidationDashboard({ state, dispatch }) {
       <div className="flex justify-end">
         <button
           onClick={handleConfirm}
-          className="px-4 py-2 rounded-lg border bg-base-100 hover:shadow"
+          className="ui-button ui-button-secondary"
         >
           Continue to Teacher Workloads
         </button>

@@ -335,6 +335,64 @@ export default function SubjectClassInput({
     color: "transparent",
   };
 
+  const autocompleteSx = {
+    "& .MuiOutlinedInput-root": {
+      borderRadius: "1rem",
+      background:
+        "linear-gradient(145deg, rgba(255,255,255,0.9), rgba(240,247,255,0.92))",
+      boxShadow:
+        "inset 2px 2px 6px rgba(255,255,255,0.72), 0 10px 24px rgba(79,172,254,0.08), 0 4px 10px rgba(15,23,36,0.08)",
+      transition: "border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease",
+      "& fieldset": {
+        borderColor: "rgba(79, 172, 254, 0.18)",
+      },
+      "&:hover fieldset": {
+        borderColor: "rgba(79, 172, 254, 0.34)",
+      },
+      "&.Mui-focused": {
+        transform: "translateY(-1px)",
+        boxShadow:
+          "0 0 0 4px rgba(79,172,254,0.16), 0 18px 36px rgba(79,172,254,0.16), inset 0 1px 0 rgba(255,255,255,0.8)",
+      },
+      "&.Mui-focused fieldset": {
+        borderColor: "rgba(79, 172, 254, 0.72)",
+      },
+    },
+    "& .MuiInputBase-input": {
+      color: "#1f2937",
+      paddingTop: "0.95rem",
+      paddingBottom: "0.95rem",
+    },
+    "& .MuiFormLabel-root": {
+      color: "rgba(55, 65, 81, 0.72)",
+      fontWeight: 600,
+      letterSpacing: "0.03em",
+    },
+    "& .MuiFormLabel-root.Mui-focused": {
+      color: "#2f80ed",
+    },
+  };
+
+  const autocompletePaperSx = {
+    mt: 1,
+    borderRadius: "1.1rem",
+    border: "1px solid rgba(79, 172, 254, 0.16)",
+    background:
+      "linear-gradient(180deg, rgba(255,255,255,0.96), rgba(244,248,255,0.94))",
+    boxShadow: "0 22px 44px rgba(15, 23, 36, 0.14)",
+    "& .MuiAutocomplete-option": {
+      minHeight: "2.8rem",
+      borderRadius: "0.8rem",
+      margin: "0.25rem 0.4rem",
+    },
+    "& .MuiAutocomplete-option.Mui-focused": {
+      backgroundColor: "rgba(79, 172, 254, 0.12)",
+    },
+    "& .MuiAutocomplete-option[aria-selected='true']": {
+      backgroundColor: "rgba(79, 172, 254, 0.18)",
+    },
+  };
+
   return (
     <NeumorphicCard className="w-full">
       <div className="flex flex-col gap-4">
@@ -361,7 +419,7 @@ export default function SubjectClassInput({
               type="button"
               onClick={() => dispatch({ type: "PREV_TEACHER" })}
               aria-label="Go back"
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white/40 backdrop-blur-sm"
+              className="ui-button ui-button-soft"
             >
               Back
             </button>
@@ -370,14 +428,17 @@ export default function SubjectClassInput({
               type="button"
               onClick={() => dispatch({ type: "NEXT_TEACHER" })}
               aria-label="Skip or next"
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-100"
+              className="ui-button ui-button-soft"
             >
               Skip
             </button>
           </div>
         </div>
 
-        <form onSubmit={handleAddSubjects} className="grid gap-3 lg:grid-cols-[2fr,120px,140px,auto]">
+        <form
+          onSubmit={handleAddSubjects}
+          className="grid gap-3 lg:grid-cols-[2fr,120px,140px,auto]"
+        >
           <div className="relative" ref={subjectInputRef}>
             <Autocomplete
               freeSolo
@@ -397,6 +458,13 @@ export default function SubjectClassInput({
                 }
               }}
               autoHighlight
+              sx={autocompleteSx}
+              slotProps={{
+                paper: {
+                  elevation: 0,
+                  sx: autocompletePaperSx,
+                },
+              }}
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -407,14 +475,13 @@ export default function SubjectClassInput({
                     autoComplete: "on",
                   }}
                   autoFocus
-                  className="bg-white rounded-lg"
                 />
               )}
             />
           </div>
 
           <label className="flex flex-col gap-1 text-sm text-[#444]">
-            <span>Year</span>
+            <span className="ui-label">Year</span>
             <input
               type="number"
               inputMode="numeric"
@@ -422,13 +489,13 @@ export default function SubjectClassInput({
               max={maxYear}
               value={year}
               onChange={(event) => setYear(clampYear(event.target.value))}
-              className="px-3 py-3 rounded-lg shadow-inner outline-none text-center"
+              className="ui-input text-center"
               aria-label="Year number"
             />
           </label>
 
           <label className="flex flex-col gap-1 text-sm text-[#444]">
-            <span>Lessons / week</span>
+            <span className="ui-label">Lessons / week</span>
             <input
               type="number"
               inputMode="numeric"
@@ -436,26 +503,30 @@ export default function SubjectClassInput({
               max={MAX_LESSONS_PER_WEEK}
               value={lessonsPerWeek}
               onChange={(event) => setLessonsPerWeek(clampLessons(event.target.value))}
-              className="px-3 py-3 rounded-lg shadow-inner outline-none text-center"
+              className="ui-input text-center"
               aria-label="Lessons per week"
             />
           </label>
 
           <button
             type="submit"
-            className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-green-500 text-white rounded-lg"
+            className="ui-button ui-button-primary"
             aria-label="Add subject"
           >
             Add
           </button>
         </form>
 
-        <div className="text-xs text-[#666]">
+        <div className="ui-inline-note">
           Classes will be saved as {formatClassName(classPrefix, minYear)} to{" "}
           {formatClassName(classPrefix, maxYear)}.
         </div>
 
-        {error && <div className="text-red-600 text-sm">{error}</div>}
+        {error && (
+          <div className="ui-surface-card border-red-200 bg-red-50 text-red-600 text-sm">
+            {error}
+          </div>
+        )}
 
         <div>
           <AnimatePresence>
@@ -480,14 +551,14 @@ export default function SubjectClassInput({
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 6 }}
-                    className="flex items-center justify-between gap-3 px-3 py-3 mb-2 rounded-lg bg-white/30"
+                    className="ui-row-card flex items-center justify-between gap-3 mb-2"
                   >
                     {!isEditing ? (
                       <>
                         <div>
                           <div className="font-medium text-[#222]">{entry.subject}</div>
                           <div className="text-sm text-[#666]">
-                            {entry.class} · {entry.lessonsPerWeek} lesson
+                            {entry.class} - {entry.lessonsPerWeek} lesson
                             {entry.lessonsPerWeek === 1 ? "" : "s"} per week
                           </div>
                         </div>
@@ -497,7 +568,7 @@ export default function SubjectClassInput({
                             type="button"
                             onClick={() => startEdit(index)}
                             aria-label={`Edit ${entry.subject}`}
-                            className="p-2 rounded-md bg-blue-50"
+                            className="ui-button ui-button-soft ui-button-sm"
                           >
                             Edit
                           </button>
@@ -506,7 +577,7 @@ export default function SubjectClassInput({
                             type="button"
                             onClick={() => handleRemoveSubject(index)}
                             aria-label={`Remove ${entry.subject}`}
-                            className="p-2 rounded-md bg-red-50"
+                            className="ui-button ui-button-danger ui-button-sm"
                           >
                             Remove
                           </button>
@@ -519,13 +590,13 @@ export default function SubjectClassInput({
                             ref={editRef}
                             value={editSubject}
                             onChange={(event) => setEditSubject(event.target.value)}
-                            className="px-3 py-2 rounded-lg shadow-inner outline-none"
+                            className="ui-input"
                             aria-label="Edit subject"
                           />
                           <input
                             value={editYear}
                             onChange={(event) => setEditYear(clampYear(event.target.value))}
-                            className="px-3 py-2 rounded-lg shadow-inner outline-none text-center"
+                            className="ui-input text-center"
                             aria-label="Edit year"
                           />
                           <input
@@ -533,7 +604,7 @@ export default function SubjectClassInput({
                             onChange={(event) =>
                               setEditLessonsPerWeek(clampLessons(event.target.value))
                             }
-                            className="px-3 py-2 rounded-lg shadow-inner outline-none text-center"
+                            className="ui-input text-center"
                             aria-label="Edit lessons per week"
                           />
                         </div>
@@ -542,14 +613,14 @@ export default function SubjectClassInput({
                           <button
                             type="button"
                             onClick={() => saveEdit(index)}
-                            className="px-3 py-1 rounded-md bg-green-500 text-white"
+                            className="ui-button ui-button-primary ui-button-sm"
                           >
                             Save
                           </button>
                           <button
                             type="button"
                             onClick={cancelEdit}
-                            className="px-3 py-1 rounded-md bg-gray-200"
+                            className="ui-button ui-button-soft ui-button-sm"
                           >
                             Cancel
                           </button>
@@ -567,7 +638,7 @@ export default function SubjectClassInput({
           <button
             type="button"
             onClick={() => dispatch({ type: "NEXT_TEACHER" })}
-            className="flex-1 py-2 bg-blue-500 text-white rounded-lg"
+            className="ui-button ui-button-secondary flex-1"
             aria-label="Next teacher"
           >
             {currentIndex + 1 >= totalTeachers ? "Finish Assignments" : "Next Teacher"}

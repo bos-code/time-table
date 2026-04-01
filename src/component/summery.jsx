@@ -152,20 +152,20 @@ export default function Summary({ state, dispatch, teachers = [] }) {
       </div>
 
       <section className="grid gap-4 md:grid-cols-4 mb-6">
-        <div className="rounded-2xl border bg-base-100 px-4 py-3">
-          <div className="text-sm text-gray-500">Teachers</div>
+        <div className="ui-stat-card">
+          <div className="text-sm ui-copy-muted">Teachers</div>
           <div className="text-2xl font-semibold">{teachers.length}</div>
         </div>
-        <div className="rounded-2xl border bg-base-100 px-4 py-3">
-          <div className="text-sm text-gray-500">Class groups</div>
+        <div className="ui-stat-card">
+          <div className="text-sm ui-copy-muted">Class groups</div>
           <div className="text-2xl font-semibold">{classLoads.length}</div>
         </div>
-        <div className="rounded-2xl border bg-base-100 px-4 py-3">
-          <div className="text-sm text-gray-500">Weekly lessons requested</div>
+        <div className="ui-stat-card">
+          <div className="text-sm ui-copy-muted">Weekly lessons requested</div>
           <div className="text-2xl font-semibold">{totalWeeklyLessons}</div>
         </div>
-        <div className="rounded-2xl border bg-base-100 px-4 py-3">
-          <div className="text-sm text-gray-500">Capacity per class</div>
+        <div className="ui-stat-card">
+          <div className="text-sm ui-copy-muted">Capacity per class</div>
           <div className="text-2xl font-semibold">{classCapacity}</div>
         </div>
       </section>
@@ -221,7 +221,7 @@ export default function Summary({ state, dispatch, teachers = [] }) {
             return (
               <div
                 key={teacher.name}
-                className="rounded-2xl border bg-base-100 px-5 py-4"
+                className="ui-surface-card"
               >
                 <div className="flex items-center justify-between gap-4 mb-3">
                   <div>
@@ -242,7 +242,7 @@ export default function Summary({ state, dispatch, teachers = [] }) {
                     {teacher.subjects.map((entry, index) => (
                       <div
                         key={`${entry.subject}-${entry.class}-${index}`}
-                        className="rounded-xl border bg-base-200/50 px-3 py-2 text-sm"
+                        className="rounded-xl bg-base-200 px-3 py-2 text-sm inset-neo-soft"
                       >
                         <div className="font-medium">{entry.subject}</div>
                         <div className="text-gray-500">
@@ -259,7 +259,7 @@ export default function Summary({ state, dispatch, teachers = [] }) {
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-2xl border bg-base-100 px-4 py-4">
+          <div className="ui-surface-card">
             <h3 className="font-semibold mb-3">Class Load Snapshot</h3>
             <div className="space-y-2 text-sm">
               {classLoads.length === 0 ? (
@@ -268,7 +268,7 @@ export default function Summary({ state, dispatch, teachers = [] }) {
                 classLoads.map((entry) => (
                   <div
                     key={entry.className}
-                    className="flex items-center justify-between rounded-xl bg-base-200/50 px-3 py-2"
+                    className="flex items-center justify-between rounded-xl bg-base-200 px-3 py-2 inset-neo-soft"
                   >
                     <span>{entry.className}</span>
                     <span className="font-medium">{entry.lessonCount}</span>
@@ -278,7 +278,7 @@ export default function Summary({ state, dispatch, teachers = [] }) {
             </div>
           </div>
 
-          <div className="rounded-2xl border bg-base-100 px-4 py-4">
+          <div className="ui-surface-card">
             <h3 className="font-semibold mb-3">Solver Notes</h3>
             <div className="space-y-2 text-sm text-gray-600">
               <p>
@@ -297,7 +297,7 @@ export default function Summary({ state, dispatch, teachers = [] }) {
       <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
         <button
           onClick={() => dispatch({ type: "BACK_TO_ASSIGNMENTS" })}
-          className="px-4 py-2 rounded-lg border bg-base-100 hover:shadow"
+          className="ui-button ui-button-soft"
           type="button"
         >
           Back to Assignments
@@ -306,10 +306,10 @@ export default function Summary({ state, dispatch, teachers = [] }) {
         <button
           onClick={handleGenerate}
           disabled={state.generation.loading}
-          className={`px-4 py-2 rounded-lg text-white ${
+          className={`ui-button ${
             state.generation.loading
-              ? "bg-gray-400"
-              : "bg-primary hover:shadow-lg"
+              ? "bg-gray-400 text-white"
+              : "ui-button-primary"
           }`}
           type="button"
         >

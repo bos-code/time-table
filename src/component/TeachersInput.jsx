@@ -29,28 +29,38 @@ export default function TeacherInput({ dispatch, teachers }) {
 
   return (
     <NeumorphicCard>
-      <h2 className="text-xl font-bold mb-4">Enter Teacher Names</h2>
-      <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
+      <div className="mb-5">
+        <h2 className="text-xl font-bold">Enter Teacher Names</h2>
+        <p className="ui-inline-note mt-1">
+          Start with the teaching staff. Each name should be unique so the solver can
+          track timetable clashes properly.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 mb-4">
         <input
           value={name}
           onChange={(event) => {
             setName(event.target.value);
             setError("");
           }}
-          className="flex-1 px-3 py-2 rounded-lg border-none outline-none shadow-inner"
+          className="ui-input flex-1"
           placeholder="Teacher Name"
         />
-        <button type="submit" className="px-4 py-2 bg-green-500 text-white rounded-lg">
+        <button type="submit" className="ui-button ui-button-primary sm:min-w-32">
           Add
         </button>
       </form>
 
       {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
 
-      <ul className="mb-4 space-y-1">
+      <ul className="mb-5 space-y-2">
         {teachers.map((teacher, index) => (
-          <li key={`${teacher.name}-${index}`} className="text-sm">
-            - {teacher.name}
+          <li
+            key={`${teacher.name}-${index}`}
+            className="ui-surface-card text-sm font-medium"
+          >
+            {teacher.name}
           </li>
         ))}
       </ul>
@@ -58,7 +68,7 @@ export default function TeacherInput({ dispatch, teachers }) {
       {teachers.length > 0 && (
         <button
           onClick={() => dispatch({ type: "CONFIRM_TEACHERS" })}
-          className="w-full py-2 bg-blue-500 text-white rounded-lg"
+          className="ui-button ui-button-secondary w-full"
         >
           Confirm
         </button>

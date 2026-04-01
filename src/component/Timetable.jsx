@@ -13,7 +13,7 @@ function ScheduleGrid({ title, schedules = [] }) {
   return (
     <div className="space-y-6">
       {schedules.map((schedule) => (
-        <div key={schedule.name} className="rounded-2xl border bg-base-100 p-4">
+        <div key={schedule.name} className="ui-surface-card mb-6">
           <h3 className="text-lg font-semibold mb-3">{schedule.name}</h3>
 
           <div className="overflow-x-auto">
@@ -91,7 +91,7 @@ export default function TimetableView({ timetable, dispatch }) {
           <button
             type="button"
             onClick={() => dispatch({ type: "VIEW_SUMMARY" })}
-            className="px-4 py-2 rounded-lg border bg-base-100 hover:shadow"
+            className="ui-button ui-button-soft"
           >
             Back to Summary
           </button>
@@ -116,8 +116,8 @@ export default function TimetableView({ timetable, dispatch }) {
             <button
               type="button"
               onClick={() => setActiveView("class")}
-              className={`px-4 py-2 rounded-lg border ${
-                activeView === "class" ? "bg-base-100 shadow" : "bg-base-200"
+              className={`ui-button ${
+                activeView === "class" ? "ui-button-secondary" : "ui-button-soft"
               }`}
             >
               By Class
@@ -125,8 +125,8 @@ export default function TimetableView({ timetable, dispatch }) {
             <button
               type="button"
               onClick={() => setActiveView("teacher")}
-              className={`px-4 py-2 rounded-lg border ${
-                activeView === "teacher" ? "bg-base-100 shadow" : "bg-base-200"
+              className={`ui-button ${
+                activeView === "teacher" ? "ui-button-secondary" : "ui-button-soft"
               }`}
             >
               By Teacher
@@ -134,14 +134,14 @@ export default function TimetableView({ timetable, dispatch }) {
             <button
               type="button"
               onClick={() => dispatch({ type: "VIEW_SUMMARY" })}
-              className="px-4 py-2 rounded-lg border bg-base-100 hover:shadow"
+              className="ui-button ui-button-soft"
             >
               Back to Summary
             </button>
             <button
               type="button"
               onClick={() => dispatch({ type: "RESET" })}
-              className="px-4 py-2 rounded-lg border bg-base-100 hover:shadow"
+              className="ui-button ui-button-primary"
             >
               Start Over
             </button>
@@ -149,20 +149,20 @@ export default function TimetableView({ timetable, dispatch }) {
         </div>
 
         <section className="grid gap-4 md:grid-cols-4">
-          <div className="rounded-2xl border bg-base-100 px-4 py-3">
-            <div className="text-sm text-gray-500">Solver status</div>
+          <div className="ui-stat-card">
+            <div className="text-sm ui-copy-muted">Solver status</div>
             <div className="text-2xl font-semibold">{stats.solverStatus || "Unknown"}</div>
           </div>
-          <div className="rounded-2xl border bg-base-100 px-4 py-3">
-            <div className="text-sm text-gray-500">Teachers</div>
+          <div className="ui-stat-card">
+            <div className="text-sm ui-copy-muted">Teachers</div>
             <div className="text-2xl font-semibold">{stats.teacherCount || 0}</div>
           </div>
-          <div className="rounded-2xl border bg-base-100 px-4 py-3">
-            <div className="text-sm text-gray-500">Classes</div>
+          <div className="ui-stat-card">
+            <div className="text-sm ui-copy-muted">Classes</div>
             <div className="text-2xl font-semibold">{stats.classCount || 0}</div>
           </div>
-          <div className="rounded-2xl border bg-base-100 px-4 py-3">
-            <div className="text-sm text-gray-500">Objective score</div>
+          <div className="ui-stat-card">
+            <div className="text-sm ui-copy-muted">Objective score</div>
             <div className="text-2xl font-semibold">
               {stats.objectiveValue ?? "n/a"}
             </div>
@@ -174,7 +174,7 @@ export default function TimetableView({ timetable, dispatch }) {
           schedules={scheduleOptions[activeView]}
         />
 
-        <div className="rounded-2xl border bg-base-100 p-4">
+        <div className="ui-surface-card mt-6">
           <h3 className="text-lg font-semibold mb-3">Lesson Placements</h3>
           <div className="overflow-x-auto">
             <table className="min-w-full border-separate border-spacing-0">
