@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import NeumorphicCard from "./neuCard";
+import CustomSelect from "./CustomSelect";
 
 const MAX_LESSONS_PER_WEEK = 15;
 
@@ -15,6 +16,7 @@ function formatClassName(prefix, year) {
 export default function SubjectClassInput({
   dispatch,
   teacher = { name: "Unknown", subjects: [] },
+  allTeachers = [],
   currentIndex = 0,
   totalTeachers = 1,
   minYear = 1,
@@ -122,6 +124,7 @@ export default function SubjectClassInput({
   const [lessonsPerWeek, setLessonsPerWeek] = useState("3");
   const [error, setError] = useState("");
   const subjectInputRef = useRef(null);
+  const yearInputRef = useRef(null);
 
   const [editingIndex, setEditingIndex] = useState(-1);
   const [editSubject, setEditSubject] = useState("");
@@ -258,13 +261,12 @@ export default function SubjectClassInput({
       },
     });
 
-    setSubject("");
+    // Keep subject and lessons sticky - the common case is the same teacher
+    // repeating one subject across several classes, so only the year changes.
     setYear("");
-    setLessonsPerWeek("3");
     setTimeout(() => {
-      const input =
-        subjectInputRef.current?.querySelector("input") || subjectInputRef.current;
-      input?.focus?.();
+      yearInputRef.current?.focus?.();
+      yearInputRef.current?.select?.();
     }, 40);
   }
 
@@ -290,7 +292,10 @@ export default function SubjectClassInput({
     const yearMatch = (entry.class || "").match(/(\d+)/);
     setEditYear(yearMatch ? yearMatch[1] : "");
     setEditLessonsPerWeek(String(entry.lessonsPerWeek ?? 3));
-    setTimeout(() => editRef.current?.focus(), 50);
+    setTimeout(() => {
+      const input = editRef.current?.querySelector("input") || editRef.current;
+      input?.focus?.();
+    }, 50);
     setError("");
   }
 
@@ -411,21 +416,31 @@ export default function SubjectClassInput({
               type="button"
               onClick={() => dispatch({ type: "PREV_TEACHER" })}
               aria-label="Go back"
+              disabled={currentIndex === 0}
               className="ui-button ui-button-soft flex-1 sm:flex-none"
             >
               Back
             </button>
-
-            <button
-              type="button"
-              onClick={() => dispatch({ type: "NEXT_TEACHER" })}
-              aria-label="Skip or next"
-              className="ui-button ui-button-soft flex-1 sm:flex-none"
-            >
-              Skip
-            </button>
           </div>
         </div>
+
+        {allTeachers.length > 1 && (
+          <label className="flex flex-col gap-1 text-sm sm:max-w-xs">
+            <span className="ui-label">Jump to teacher</span>
+            <CustomSelect
+              value={String(currentIndex)}
+              onChange={(newValue) =>
+                dispatch({ type: "GO_TO_TEACHER", payload: Number(newValue) })
+              }
+              options={allTeachers.map((t, index) => ({
+                value: String(index),
+                label: `${index + 1}. ${t.name}${
+                  t.subjects?.length ? ` (${t.subjects.length})` : ""
+                }`,
+              }))}
+            />
+          </label>
+        )}
 
         <form
           onSubmit={handleAddSubjects}
@@ -461,6 +476,12 @@ export default function SubjectClassInput({
                 <TextField
                   {...params}
                   label="Subject"
+                  error={Boolean(subject) && !inAllowed(subject)}
+                  helperText={
+                    subject && !inAllowed(subject)
+                      ? "Not in the allowed subject list"
+                      : " "
+                  }
                   inputProps={{
                     ...params.inputProps,
                     "aria-label": "Subject",
@@ -475,6 +496,7 @@ export default function SubjectClassInput({
           <label className="flex flex-col gap-1 text-sm text-[#444]">
             <span className="ui-label">Year</span>
             <input
+              ref={yearInputRef}
               type="number"
               inputMode="numeric"
               min={minYear}
@@ -578,13 +600,43 @@ export default function SubjectClassInput({
                     ) : (
                       <>
                         <div className="flex-1 grid gap-2 lg:grid-cols-[2fr,110px,130px]">
-                          <input
-                            ref={editRef}
-                            value={editSubject}
-                            onChange={(event) => setEditSubject(event.target.value)}
-                            className="ui-input"
-                            aria-label="Edit subject"
-                          />
+                          <div ref={editRef}>
+                            <Autocomplete
+                              freeSolo
+                              options={subjectOptions}
+                              inputValue={editSubject}
+                              onInputChange={(_, newInput) => {
+                                setEditSubject(newInput ?? "");
+                                setError("");
+                              }}
+                              onChange={(_, newValue) => {
+                                setEditSubject(
+                                  typeof newValue === "string" ? newValue : newValue ? String(newValue) : ""
+                                );
+                              }}
+                              autoHighlight
+                              sx={autocompleteSx}
+                              slotProps={{ paper: { elevation: 0, sx: autocompletePaperSx } }}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Subject"
+                                  error={Boolean(editSubject) && !inAllowed(editSubject)}
+                                  helperText={
+                                    editSubject && !inAllowed(editSubject)
+                                      ? "Not in the allowed subject list"
+                                      : " "
+                                  }
+                                  inputProps={{
+                                    ...params.inputProps,
+                                    "aria-label": "Edit subject",
+                                    autoComplete: "on",
+                                  }}
+                                  autoFocus
+                                />
+                              )}
+                            />
+                          </div>
                           <input
                             value={editYear}
                             onChange={(event) => setEditYear(clampYear(event.target.value))}

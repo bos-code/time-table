@@ -72,6 +72,35 @@
   --neo-bg-gradient: linear-gradient(145deg, #f6f7f9, #e9ebec);
 }
 
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .app-shell {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .app-main {
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  .ui-surface-card,
+  .ui-stat-card,
+  .ui-row-card {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+}
+
 @layer base {
   body {
     font-family: var(--font-sans);

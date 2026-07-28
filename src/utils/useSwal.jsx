@@ -1,17 +1,21 @@
 import Swal from "sweetalert2";
 
-export const handleEditTeacher = (teacher) => {
-  Swal.fire("Edit Teacher", `Editing ${teacher.name}`, "info");
-};
-
-export const handleRemoveTeacher = (id) => {
-  Swal.fire("Remove Teacher", `Teacher with id ${id} removed`, "warning");
-};
-
-export const handleEditSubject = (subject) => {
-  Swal.fire("Edit Subject", `Editing ${subject.name}`, "info");
-};
-
-export const handleRemoveSubject = (id) => {
-  Swal.fire("Remove Subject", `Subject with id ${id} removed`, "warning");
-};
+export async function confirmAction({
+  title = "Are you sure?",
+  text = "",
+  confirmText = "Yes",
+  cancelText = "Cancel",
+  danger = false,
+} = {}) {
+  const result = await Swal.fire({
+    title,
+    text,
+    icon: danger ? "warning" : "question",
+    showCancelButton: true,
+    confirmButtonText: confirmText,
+    cancelButtonText: cancelText,
+    confirmButtonColor: danger ? "#ef4444" : "#4f46e5",
+    reverseButtons: true,
+  });
+  return result.isConfirmed;
+}

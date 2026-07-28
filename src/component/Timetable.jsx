@@ -1,5 +1,36 @@
 import React, { useMemo, useState } from "react";
 import NeumorphicCard from "./neuCard";
+import { confirmAction } from "../utils/useSwal";
+
+function toCsvValue(value) {
+  const text = String(value ?? "");
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function downloadAssignmentsCsv(assignments) {
+  const header = ["Day", "Period", "Start", "End", "Class", "Subject", "Teacher"];
+  const rows = assignments.map((assignment) => [
+    assignment.day,
+    assignment.period,
+    assignment.start,
+    assignment.end,
+    assignment.className,
+    assignment.subject,
+    assignment.teacher,
+  ]);
+
+  const csv = [header, ...rows]
+    .map((row) => row.map(toCsvValue).join(","))
+    .join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "timetable.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
 
 function ScheduleGrid({ title, schedules = [] }) {
   if (!schedules.length) {
@@ -112,7 +143,7 @@ export default function TimetableView({ timetable, dispatch }) {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 no-print">
             <button
               type="button"
               onClick={() => setActiveView("class")}
@@ -133,6 +164,21 @@ export default function TimetableView({ timetable, dispatch }) {
             </button>
             <button
               type="button"
+              onClick={() => window.print()}
+              className="ui-button ui-button-soft"
+            >
+              Print
+            </button>
+            <button
+              type="button"
+              onClick={() => downloadAssignmentsCsv(assignments)}
+              className="ui-button ui-button-soft"
+              disabled={assignments.length === 0}
+            >
+              Export CSV
+            </button>
+            <button
+              type="button"
               onClick={() => dispatch({ type: "VIEW_SUMMARY" })}
               className="ui-button ui-button-soft"
             >
@@ -140,7 +186,17 @@ export default function TimetableView({ timetable, dispatch }) {
             </button>
             <button
               type="button"
-              onClick={() => dispatch({ type: "RESET" })}
+              onClick={async () => {
+                const confirmed = await confirmAction({
+                  title: "Start over?",
+                  text: "This clears every teacher, assignment, and the generated timetable. This can't be undone.",
+                  confirmText: "Start over",
+                  danger: true,
+                });
+                if (confirmed) {
+                  dispatch({ type: "RESET" });
+                }
+              }}
               className="ui-button ui-button-primary"
             >
               Start Over

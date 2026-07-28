@@ -6,6 +6,7 @@ import CustomSelect from "./CustomSelect";
 export default function ValidationDashboard({ state, dispatch }) {
   const [banner, setBanner] = useState(null);
   const [newSubject, setNewSubject] = useState("");
+  const [subjectSearch, setSubjectSearch] = useState("");
   const validation = state.validation;
 
   const catalogs = useMemo(() => {
@@ -34,6 +35,14 @@ export default function ValidationDashboard({ state, dispatch }) {
 
     return Array.from(new Set(pool)).sort((left, right) => left.localeCompare(right));
   }, [catalogs, validation.levels]);
+
+  const visibleSubjects = useMemo(() => {
+    const query = subjectSearch.trim().toLowerCase();
+    if (!query) {
+      return allSubjects;
+    }
+    return allSubjects.filter((subject) => subject.toLowerCase().includes(query));
+  }, [allSubjects, subjectSearch]);
 
   const activeDays = useMemo(
     () => validation.days.filter((day) => day.enabled),
@@ -79,11 +88,30 @@ export default function ValidationDashboard({ state, dispatch }) {
 
   function addPeriod() {
     const lastPeriod = validation.periods[validation.periods.length - 1];
+
+    const toMinutes = (time) => {
+      const match = /^(\d{1,2}):(\d{2})$/.exec(String(time || "").trim());
+      return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+    };
+    const toTime = (minutes) => {
+      const clamped = Math.max(0, Math.min(23 * 60 + 59, minutes));
+      const hh = String(Math.floor(clamped / 60)).padStart(2, "0");
+      const mm = String(clamped % 60).padStart(2, "0");
+      return `${hh}:${mm}`;
+    };
+
+    const lastStart = toMinutes(lastPeriod?.start);
+    const lastEnd = toMinutes(lastPeriod?.end);
+    const duration = lastStart !== null && lastEnd !== null ? lastEnd - lastStart : 40;
+
+    const start = lastEnd !== null ? toTime(lastEnd) : "15:00";
+    const end = lastEnd !== null ? toTime(lastEnd + duration) : "15:40";
+
     const newPeriod = {
       id: `p${Math.random().toString(36).slice(2, 7)}`,
       label: "New Period",
-      start: lastPeriod?.end || "15:00",
-      end: "15:40",
+      start,
+      end,
       type: "teaching",
     };
 
@@ -260,29 +288,44 @@ export default function ValidationDashboard({ state, dispatch }) {
       </section>
 
       <section className="mb-6">
-        <h3 className="font-semibold mb-3">
-          Subjects (checked subjects become available for teacher assignments)
-        </h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+          <h3 className="font-semibold">
+            Subjects (checked subjects become available for teacher assignments)
+          </h3>
+          <input
+            placeholder="Search subjects..."
+            value={subjectSearch}
+            onChange={(event) => setSubjectSearch(event.target.value)}
+            className="ui-input sm:max-w-56"
+            aria-label="Search subjects"
+          />
+        </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          {allSubjects.map((subject) => (
-            <label
-              key={subject}
-              className="ui-check-card"
-            >
-              <input
-                type="checkbox"
-                checked={validation.subjectsSelected.includes(subject)}
-                onChange={() =>
-                  dispatch({
-                    type: "VALIDATION_TOGGLE_SUBJECT",
-                    payload: subject,
-                  })
-                }
-                className="ui-check"
-              />
-              <span className="text-sm">{subject}</span>
-            </label>
-          ))}
+          {visibleSubjects.length === 0 ? (
+            <div className="text-sm ui-copy-muted sm:col-span-2 lg:col-span-3">
+              No subjects match "{subjectSearch}".
+            </div>
+          ) : (
+            visibleSubjects.map((subject) => (
+              <label
+                key={subject}
+                className="ui-check-card"
+              >
+                <input
+                  type="checkbox"
+                  checked={validation.subjectsSelected.includes(subject)}
+                  onChange={() =>
+                    dispatch({
+                      type: "VALIDATION_TOGGLE_SUBJECT",
+                      payload: subject,
+                    })
+                  }
+                  className="ui-check"
+                />
+                <span className="text-sm">{subject}</span>
+              </label>
+            ))
+          )}
         </div>
 
         <div className="mt-3 flex gap-2">
@@ -319,20 +362,22 @@ export default function ValidationDashboard({ state, dispatch }) {
                 placeholder="Label"
               />
               <input
+                type="time"
                 value={period.start}
                 onChange={(event) =>
                   updatePeriod(index, { start: event.target.value })
                 }
                 className="ui-input"
-                placeholder="HH:MM"
+                aria-label={`${period.label || "Period"} start time`}
               />
               <input
+                type="time"
                 value={period.end}
                 onChange={(event) =>
                   updatePeriod(index, { end: event.target.value })
                 }
                 className="ui-input"
-                placeholder="HH:MM"
+                aria-label={`${period.label || "Period"} end time`}
               />
               <CustomSelect
                 value={period.type}

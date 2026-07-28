@@ -345,8 +345,36 @@ export function reducer(state, action) {
         currentTeacherIndex: Math.max(0, state.teachers.length - 1),
       });
 
+    case "GO_TO_TEACHER": {
+      const index = Math.max(
+        0,
+        Math.min(Number(action.payload) || 0, state.teachers.length - 1)
+      );
+      return withInputChange(state, {
+        screen: "subject-class-input",
+        currentTeacherIndex: index,
+      });
+    }
+
     case "VIEW_SUMMARY":
       return { ...state, screen: "summary" };
+
+    case "GO_TO_SCREEN": {
+      const target = action.payload;
+      const canGoTo = {
+        "teacher-input": true,
+        validation: state.teachers.length > 0,
+        "subject-class-input": state.validation.days.length > 0,
+        summary: state.teachers.some((teacher) => teacher.subjects.length > 0),
+        "timetable-generated": Boolean(state.generatedTimetable),
+      };
+
+      if (!canGoTo[target]) {
+        return state;
+      }
+
+      return { ...state, screen: target };
+    }
 
     case "EDIT_TEACHER": {
       const { index, name } = action.payload;

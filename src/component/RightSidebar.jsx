@@ -6,7 +6,7 @@ export default function RightSidebar({ state }) {
     let totalLessons = 0;
     state.teachers.forEach((t) => {
       t.subjects.forEach((s) => {
-        totalLessons += s.periodCount;
+        totalLessons += Number(s.lessonsPerWeek) || 0;
       });
     });
 

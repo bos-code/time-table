@@ -57,7 +57,8 @@ export default function Summary({ state, dispatch, teachers = [] }) {
 
   const teacherLoads = useMemo(
     () =>
-      teachers.map((teacher) => ({
+      teachers.map((teacher, index) => ({
+        index,
         name: teacher.name,
         lessonCount: (teacher.subjects || []).reduce(
           (total, entry) => total + (Number(entry.lessonsPerWeek) || 0),
@@ -185,8 +186,19 @@ export default function Summary({ state, dispatch, teachers = [] }) {
               </h3>
               <div className="space-y-1 text-sm text-amber-800">
                 {overloadedTeachers.map((teacher) => (
-                  <div key={teacher.name}>
-                    {teacher.name}: {teacher.lessonCount} lessons requested
+                  <div key={teacher.name} className="flex items-center justify-between gap-2">
+                    <span>
+                      {teacher.name}: {teacher.lessonCount} lessons requested
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        dispatch({ type: "GO_TO_TEACHER", payload: teacher.index })
+                      }
+                      className="ui-button ui-button-soft ui-button-sm shrink-0"
+                    >
+                      Review
+                    </button>
                   </div>
                 ))}
               </div>
@@ -212,7 +224,7 @@ export default function Summary({ state, dispatch, teachers = [] }) {
 
       <section className="grid gap-6 xl:grid-cols-[2fr,1fr]">
         <div className="space-y-4">
-          {teachers.map((teacher) => {
+          {teachers.map((teacher, teacherIndex) => {
             const lessonCount = (teacher.subjects || []).reduce(
               (total, entry) => total + (Number(entry.lessonsPerWeek) || 0),
               0
@@ -231,6 +243,15 @@ export default function Summary({ state, dispatch, teachers = [] }) {
                       {teacher.subjects.length === 1 ? "" : "s"} · {lessonCount} lessons/week
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      dispatch({ type: "GO_TO_TEACHER", payload: teacherIndex })
+                    }
+                    className="ui-button ui-button-soft ui-button-sm shrink-0"
+                  >
+                    Edit
+                  </button>
                 </div>
 
                 {teacher.subjects.length === 0 ? (
