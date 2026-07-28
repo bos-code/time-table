@@ -56,7 +56,7 @@ export default function LeftSidebar({ state, dispatch, screen, isCollapsed }) {
                 type="button"
                 disabled={!unlocked}
                 onClick={() => dispatch({ type: "GO_TO_SCREEN", payload: step.id })}
-                className={`flex items-start gap-4 p-3 rounded-2xl transition-all duration-300 w-full outline-none relative z-10 ${
+                className={`flex items-start gap-4 p-3 rounded-2xl transition-all duration-300 w-full min-w-0 outline-none relative z-10 ${
                   active
                     ? "bg-primary/10 shadow-neo-hover"
                     : !unlocked
@@ -86,12 +86,12 @@ export default function LeftSidebar({ state, dispatch, screen, isCollapsed }) {
                 </span>
 
                 {!isCollapsed && (
-                  <div className="mt-0.5 truncate">
-                    <div className={`font-semibold text-sm ${active ? "text-primary" : "text-base-content"}`}>
+                  <div className="mt-0.5 min-w-0">
+                    <div className={`font-semibold text-sm truncate ${active ? "text-primary" : "text-base-content"}`}>
                       {step.label}
                     </div>
-                    {active && <div className="text-xs ui-copy-muted mt-0.5">In progress</div>}
-                    {completed && !active && <div className="text-xs text-success mt-0.5">Completed</div>}
+                    {active && <div className="text-xs ui-copy-muted mt-0.5 truncate">In progress</div>}
+                    {completed && !active && <div className="text-xs text-success mt-0.5 truncate">Completed</div>}
                   </div>
                 )}
               </button>

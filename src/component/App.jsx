@@ -1,4 +1,4 @@
-import React, { useReducer, useState } from "react";
+import React, { useEffect, useReducer, useState } from "react";
 import { initialState, reducer } from "./tableReducer";
 import TeacherInput from "./TeachersInput";
 import ValidationDashboard from "./ValidationDashboard";
@@ -17,10 +17,24 @@ export default function App() {
   const [isLeftOpen, setIsLeftOpen] = useState(true);
   const [isRightOpen, setIsRightOpen] = useState(true);
 
+  // On phones/tablets both sidebars start as closed off-canvas drawers so the
+  // main content is usable on first load; lg+ keeps the existing push layout.
+  useEffect(() => {
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      setIsLeftOpen(false);
+      setIsRightOpen(false);
+    }
+  }, []);
+
+  const closeDrawers = () => {
+    setIsLeftOpen(false);
+    setIsRightOpen(false);
+  };
+
   return (
     <div className="h-screen w-full bg-base-100 flex flex-col overflow-hidden text-base-content relative">
       <div className="shrink-0 z-50">
-        <Navbar 
+        <Navbar
           toggleLeft={() => setIsLeftOpen(!isLeftOpen)}
           toggleRight={() => setIsRightOpen(!isRightOpen)}
           isLeftOpen={isLeftOpen}
@@ -28,19 +42,30 @@ export default function App() {
         />
       </div>
 
-      <div className="flex-1 flex overflow-hidden w-full">
+      <div className="flex-1 flex overflow-hidden w-full relative">
+        {/* Mobile/tablet backdrop for off-canvas drawers */}
+        {(isLeftOpen || isRightOpen) && (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+            onClick={closeDrawers}
+            aria-hidden="true"
+          />
+        )}
+
         {/* Left Sidebar */}
-        <div 
-          className={`shrink-0 transition-all duration-300 ease-in-out h-full overflow-y-auto overflow-x-hidden border-r border-[color-mix(in_srgb,var(--color-base-content)_8%,transparent)] z-40 bg-base-100 ${
-            isLeftOpen ? "w-[260px] lg:w-[300px]" : "w-[80px]"
+        <div
+          className={`fixed lg:static inset-y-0 lg:inset-auto left-0 top-0 lg:top-auto shrink-0 transition-all duration-300 ease-in-out h-full overflow-y-auto overflow-x-hidden border-r border-[color-mix(in_srgb,var(--color-base-content)_8%,transparent)] z-50 lg:z-40 bg-base-100 shadow-2xl lg:shadow-none ${
+            isLeftOpen
+              ? "translate-x-0 w-[260px] sm:w-[300px] lg:w-[300px]"
+              : "-translate-x-full lg:translate-x-0 w-[260px] sm:w-[300px] lg:w-[80px]"
           }`}
         >
           <LeftSidebar state={state} dispatch={dispatch} screen={screen} isCollapsed={!isLeftOpen} />
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 h-full overflow-y-auto min-w-0 p-6 lg:p-10 z-10 bg-base-200">
-          <div className="flex flex-col gap-10 w-full max-w-5xl mx-auto pb-24">
+        <main className="flex-1 h-full overflow-y-auto min-w-0 w-full p-4 sm:p-6 lg:p-10 z-10 bg-base-200">
+          <div className="flex flex-col gap-6 sm:gap-8 lg:gap-10 w-full max-w-5xl mx-auto pb-24">
             <ProgressTracker
               totalTeachers={state.teachers.length}
               currentIndex={state.currentTeacherIndex}
@@ -79,9 +104,11 @@ export default function App() {
         </main>
 
         {/* Right Sidebar */}
-        <div 
-          className={`shrink-0 transition-all duration-300 ease-in-out h-full overflow-y-auto overflow-x-hidden border-l border-[color-mix(in_srgb,var(--color-base-content)_8%,transparent)] z-40 bg-base-100 ${
-            isRightOpen ? "w-[280px] lg:w-[320px] opacity-100" : "w-0 opacity-0"
+        <div
+          className={`fixed lg:static inset-y-0 lg:inset-auto right-0 top-0 lg:top-auto shrink-0 transition-all duration-300 ease-in-out h-full overflow-y-auto overflow-x-hidden border-l border-[color-mix(in_srgb,var(--color-base-content)_8%,transparent)] z-50 lg:z-40 bg-base-100 shadow-2xl lg:shadow-none ${
+            isRightOpen
+              ? "translate-x-0 w-[280px] sm:w-[320px] lg:w-[320px] opacity-100"
+              : "translate-x-full lg:translate-x-0 w-[280px] sm:w-[320px] lg:w-0 opacity-100 lg:opacity-0"
           }`}
         >
           <RightSidebar state={state} />

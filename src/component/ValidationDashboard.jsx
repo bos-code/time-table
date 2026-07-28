@@ -122,7 +122,7 @@ export default function ValidationDashboard({ state, dispatch }) {
 
   return (
     <NeumorphicCard>
-      <div className="flex items-center justify-between mb-4 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
         <div>
           <h2 className="text-xl font-bold">Validation</h2>
           <p className="text-sm text-gray-500">
@@ -146,7 +146,7 @@ export default function ValidationDashboard({ state, dispatch }) {
         )}
       </div>
 
-      <section className="mb-6 grid gap-4 md:grid-cols-3">
+      <section className="mb-6 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         <div className="ui-stat-card">
           <div className="text-sm text-gray-500">Active days</div>
           <div className="text-2xl font-semibold">{activeDays.length}</div>
@@ -215,7 +215,7 @@ export default function ValidationDashboard({ state, dispatch }) {
 
       <section className="mb-6">
         <h3 className="font-semibold mb-2">Class Range</h3>
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-3">
           <label className="flex flex-col gap-2 text-sm">
             <span className="ui-label">From</span>
             <input
@@ -308,7 +308,7 @@ export default function ValidationDashboard({ state, dispatch }) {
           {validation.periods.map((period, index) => (
             <div
               key={period.id || index}
-              className="ui-row-card grid grid-cols-1 sm:grid-cols-5 gap-3 items-center"
+              className="ui-row-card grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-center"
             >
               <input
                 value={period.label}

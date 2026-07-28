@@ -138,20 +138,20 @@ export default function Summary({ state, dispatch, teachers = [] }) {
 
   return (
     <NeumorphicCard className="w-full">
-      <div className="flex items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Review and Generate</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Review and Generate</h2>
           <p className="text-sm text-gray-500">
             Check the requested weekly load before the OR-Tools solver runs.
           </p>
         </div>
 
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-gray-500 shrink-0">
           {activeDays.length} days · {teachingPeriods.length} teaching periods/day
         </div>
       </div>
 
-      <section className="grid gap-4 md:grid-cols-4 mb-6">
+      <section className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 mb-6">
         <div className="ui-stat-card">
           <div className="text-sm ui-copy-muted">Teachers</div>
           <div className="text-2xl font-semibold">{teachers.length}</div>

@@ -148,7 +148,7 @@ export default function TimetableView({ timetable, dispatch }) {
           </div>
         </div>
 
-        <section className="grid gap-4 md:grid-cols-4">
+        <section className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
           <div className="ui-stat-card">
             <div className="text-sm ui-copy-muted">Solver status</div>
             <div className="text-2xl font-semibold">{stats.solverStatus || "Unknown"}</div>

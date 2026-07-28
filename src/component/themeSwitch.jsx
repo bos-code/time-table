@@ -16,28 +16,28 @@ export default function Navbar({ toggleLeft, toggleRight, isLeftOpen, isRightOpe
   }, [theme]);
 
   return (
-    <nav className="flex items-center justify-between bg-base-100 border-b border-[color-mix(in_srgb,var(--color-base-content)_8%,transparent)] px-4 py-3 z-50 w-full">
-      <div className="flex items-center gap-4">
+    <nav className="flex items-center justify-between bg-base-100 border-b border-[color-mix(in_srgb,var(--color-base-content)_8%,transparent)] px-3 sm:px-4 py-3 z-50 w-full">
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0">
         {toggleLeft && (
-          <button 
-            onClick={toggleLeft} 
-            className="flex items-center justify-center w-10 h-10 rounded-xl hover:bg-base-200 text-base-content transition-colors outline-none"
+          <button
+            onClick={toggleLeft}
+            className="flex items-center justify-center w-10 h-10 rounded-xl hover:bg-base-200 text-base-content transition-colors outline-none shrink-0"
             aria-label="Toggle Navigation Sidebar"
           >
             <FaBars className="w-5 h-5" />
           </button>
         )}
-        <div className="flex items-center gap-3 ml-2">
+        <div className="flex items-center gap-3 ml-1 sm:ml-2 min-w-0">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-content shadow-neo shrink-0">
             <FaCalendarAlt className="text-xl" />
           </div>
-          <span className="text-xl font-heading font-black tracking-tight hidden sm:block">
+          <span className="text-xl font-heading font-black tracking-tight hidden sm:block truncate">
             TimeTink
           </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4 shrink-0">
         <button
           onClick={() => setTheme(theme === "light-glass" ? "dark-glass" : "light-glass")}
           className="relative inline-flex h-[36px] items-center gap-2 overflow-hidden rounded-full bg-base-200 p-1 px-3 inset-neo-soft cursor-pointer outline-none select-none transition-colors"

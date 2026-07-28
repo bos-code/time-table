@@ -21,7 +21,7 @@ export default function RightSidebar({ state }) {
   }, [state.teachers, state.validation]);
 
   return (
-    <aside className="p-4 h-full flex flex-col gap-6 w-[280px] lg:w-[320px]">
+    <aside className="p-4 h-full flex flex-col gap-6 w-full">
       <section className="ui-surface-card">
         <div className="flex items-start justify-between gap-4">
           <div>

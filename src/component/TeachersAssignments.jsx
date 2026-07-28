@@ -396,10 +396,10 @@ export default function SubjectClassInput({
   return (
     <NeumorphicCard className="w-full">
       <div className="flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="min-w-0">
             <h2
-              className="text-2xl font-bold leading-tight"
+              className="text-xl sm:text-2xl font-bold leading-tight break-words"
               style={gradientTextStyle}
               aria-live="polite"
             >
@@ -414,12 +414,12 @@ export default function SubjectClassInput({
             </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 shrink-0">
             <button
               type="button"
               onClick={() => dispatch({ type: "PREV_TEACHER" })}
               aria-label="Go back"
-              className="ui-button ui-button-soft"
+              className="ui-button ui-button-soft flex-1 sm:flex-none"
             >
               Back
             </button>
@@ -428,7 +428,7 @@ export default function SubjectClassInput({
               type="button"
               onClick={() => dispatch({ type: "NEXT_TEACHER" })}
               aria-label="Skip or next"
-              className="ui-button ui-button-soft"
+              className="ui-button ui-button-soft flex-1 sm:flex-none"
             >
               Skip
             </button>
