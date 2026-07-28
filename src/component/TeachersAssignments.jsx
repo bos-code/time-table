@@ -328,13 +328,6 @@ export default function SubjectClassInput({
     cancelEdit();
   }
 
-  const gradientTextStyle = {
-    background: "linear-gradient(90deg, #ff4c60 0%, #ff8aa1 40%, #a18cd1 100%)",
-    WebkitBackgroundClip: "text",
-    backgroundClip: "text",
-    color: "transparent",
-  };
-
   const autocompleteSx = {
     "& .MuiOutlinedInput-root": {
       borderRadius: "1rem",
@@ -399,8 +392,7 @@ export default function SubjectClassInput({
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="min-w-0">
             <h2
-              className="text-xl sm:text-2xl font-bold leading-tight break-words"
-              style={gradientTextStyle}
+              className="text-xl sm:text-2xl font-bold leading-tight break-words text-base-content"
               aria-live="polite"
             >
               Add Subjects for {teacher?.name ?? "Unknown"}
