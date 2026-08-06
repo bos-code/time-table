@@ -1,5 +1,13 @@
 # Time Table
 
+## StudyPro integration — read before making integration changes
+
+AI agents and developers working on StudyPro integration must first read:
+
+- [`STUDYPRO_TIMETABLE_INTEGRATION_PLAN.md`](./STUDYPRO_TIMETABLE_INTEGRATION_PLAN.md)
+
+That document defines system ownership, the Python-to-NestJS API boundary, stable ID requirements, timetable publication, versioning, Telegram boundaries, testing, and pending decisions. Do not rewrite the Python solver into StudyPro or begin integration implementation without explicit approval.
+
 This app now has two parts:
 
 - `React + Vite` frontend for collecting teachers, classes, subjects, days, and periods
